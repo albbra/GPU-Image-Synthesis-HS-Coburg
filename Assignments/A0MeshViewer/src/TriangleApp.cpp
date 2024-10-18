@@ -18,11 +18,34 @@ namespace
 
 f32m4 getNormalizationTransformation(f32v3 const* const positions, ui32 nPositions)
 {
-  // TODO Implement me!
-  // The cast to void is just to avoid warnings!
-  (void)nPositions;
-  (void)positions;
-  return f32m4(1);
+  // Berechne die minimalen und maximalen Eckpunkte des Modells
+  f32v3 minPosition = positions[0];
+  f32v3 maxPosition = positions[0];
+
+  for (ui32 i = 1; i < nPositions; ++i)
+  {
+    minPosition = glm::min(minPosition, positions[i]); // Minima pro Achse finden
+    maxPosition = glm::max(maxPosition, positions[i]); // Maxima pro Achse finden
+  }
+
+  // Berechne den Schwerpunkt des Modells (Mittelpunkt der Bounding Box)
+  f32v3 center = (minPosition + maxPosition) * 0.5f;
+
+  // Berechne die Ausdehnung des Modells in jeder Achse (x, y, z)
+  f32v3 extents = maxPosition - minPosition;
+
+  // Bestimme die längste Achse der Bounding Box
+  f32 maxExtent = glm::max(extents.x, glm::max(extents.y, extents.z));
+
+  // Berechne den Skalierungsfaktor basierend auf der längsten Achse
+  f32 scale = 1.0f / maxExtent;
+
+  // Erstelle die Normalisierungstransformation (Translation + Skalierung)
+  // Zuerst skalieren, dann in den Ursprung verschieben (Translation um den Schwerpunkt)
+  f32m4 normalizationMatrix = glm::scale(f32m4(1.0f), f32v3(scale)); // Skalierung auf [0, 1] Bereich
+  normalizationMatrix = glm::translate(normalizationMatrix, -center); // Translation, um den Schwerpunkt zu verschieben
+
+  return normalizationMatrix;
 }
 } // namespace
 
@@ -32,7 +55,15 @@ MeshViewer::MeshViewer(const DX12AppConfig config)
 {
   m_examinerController.setTranslationVector(f32v3(0, 0, 3));
   CograBinaryMeshFile cbm("../../../data/bunny.cbm");
-  // TODO Implement me!
+  
+  const f32* positionsRaw = cbm.getPositionsPtr();
+  ui32 numVertices = cbm.getNumVertices();
+  const f32v3* positions = reinterpret_cast<const f32v3*>(positionsRaw);
+
+  m_normalizationTransformation = getNormalizationTransformation(positions, numVertices);
+
+  const ui32* indices = cbm.getTriangleIndices();
+  ui32 nTriangles = cbm.getNumTriangles();
 }
 
 MeshViewer::~MeshViewer()
