@@ -1,3 +1,4 @@
+// TriangleApp.cpp
 #include "TriangleApp.h"
 #include <d3dx12/d3dx12.h>
 #include <gimslib/contrib/stb/stb_image.h>
@@ -52,6 +53,16 @@ f32m4 getNormalizationTransformation(f32v3 const* const positions, ui32 nPositio
 MeshViewer::MeshViewer(const DX12AppConfig config)
     : DX12App(config)
     , m_examinerController(true)
+    , m_normalizationTransformation()
+    , m_vertexBuffer()
+    , m_indexBuffer()
+    , m_vertexBufferView()
+    , m_indexBufferView()
+    , m_constantBuffer()
+    , m_constantBufferData()
+    , m_mappedConstantBuffer()
+    , m_indexCount()
+    , m_uiData()
 {
   m_examinerController.setTranslationVector(f32v3(0, 0, 3));
   CograBinaryMeshFile cbm("../../../data/bunny.cbm");
@@ -64,6 +75,9 @@ MeshViewer::MeshViewer(const DX12AppConfig config)
 
   const ui32* indices = cbm.getTriangleIndices();
   ui32 nTriangles = cbm.getNumTriangles();
+
+  (void*)indices;
+  (void)nTriangles;
 }
 
 MeshViewer::~MeshViewer()
@@ -94,9 +108,9 @@ void MeshViewer::onDraw()
   // Of course, skip the (void). That is just to prevent warning, sinces I am not using it here (but you will have to!)
   (void)m_examinerController.getTransformationMatrix();
 
-  const auto commandList = getCommandList();
-  const auto rtvHandle   = getRTVHandle();
-  const auto dsvHandle   = getDSVHandle();
+  const ComPtr<ID3D12GraphicsCommandList> commandList = getCommandList();
+  const CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle   = getRTVHandle();
+  const CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle   = getDSVHandle();
   // TODO Implement me!
 
   commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, &dsvHandle);

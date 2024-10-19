@@ -1,3 +1,4 @@
+// TriangleMesh.hlsl
 struct VertexShaderOutput
 {
   float4 position : SV_POSITION;
@@ -47,10 +48,12 @@ float4 PS_main(VertexShaderOutput input)
 
     float3 l = normalize(lightDirection);
     float3 n = normalize(input.viewSpaceNormal);
+    
     if (twoSidedLighting)
     {
       n = n.z < 0.0 ? n : -n;
     }
+    
     float3 v = normalize(-input.viewSpacePosition);
     float3 h = normalize(l + v);
 
