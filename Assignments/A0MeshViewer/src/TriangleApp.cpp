@@ -43,7 +43,7 @@ f32m4 getNormalizationTransformation(f32v3 const* const positions, ui32 nPositio
 
   // Erstelle die Normalisierungstransformation (Translation + Skalierung)
   // Zuerst skalieren, dann in den Ursprung verschieben (Translation um den Schwerpunkt)
-  f32m4 normalizationMatrix = glm::scale(f32m4(1.0f), f32v3(scale)); // Skalierung auf [0, 1] Bereich
+  f32m4 normalizationMatrix = glm::scale(f32m4(1.0f), f32v3(scale));  // Skalierung auf [0, 1] Bereich
   normalizationMatrix = glm::translate(normalizationMatrix, -center); // Translation, um den Schwerpunkt zu verschieben
 
   return normalizationMatrix;
@@ -54,27 +54,25 @@ MeshViewer::MeshViewer(const DX12AppConfig config)
     : DX12App(config)
     , m_examinerController(true)
     , m_normalizationTransformation()
-    , m_vertexBuffer()
-    , m_indexBuffer()
-    , m_vertexBufferView()
-    , m_indexBufferView()
-    , m_constantBuffer()
-    , m_constantBufferData()
-    , m_mappedConstantBuffer()
-    , m_indexCount()
     , m_uiData()
 {
   m_examinerController.setTranslationVector(f32v3(0, 0, 3));
+
+  loadAndStoreMesh();
+}
+
+void MeshViewer::loadAndStoreMesh()
+{
   CograBinaryMeshFile cbm("../../../data/bunny.cbm");
-  
-  const f32* positionsRaw = cbm.getPositionsPtr();
-  ui32 numVertices = cbm.getNumVertices();
-  const f32v3* positions = reinterpret_cast<const f32v3*>(positionsRaw);
+
+  const f32*   positionsRaw = cbm.getPositionsPtr();
+  ui32         numVertices  = cbm.getNumVertices();
+  const f32v3* positions    = reinterpret_cast<const f32v3*>(positionsRaw);
 
   m_normalizationTransformation = getNormalizationTransformation(positions, numVertices);
 
-  const ui32* indices = cbm.getTriangleIndices();
-  ui32 nTriangles = cbm.getNumTriangles();
+  const ui32* indices    = cbm.getTriangleIndices();
+  ui32        nTriangles = cbm.getNumTriangles();
 
   (void*)indices;
   (void)nTriangles;
@@ -109,8 +107,8 @@ void MeshViewer::onDraw()
   (void)m_examinerController.getTransformationMatrix();
 
   const ComPtr<ID3D12GraphicsCommandList> commandList = getCommandList();
-  const CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle   = getRTVHandle();
-  const CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle   = getDSVHandle();
+  const CD3DX12_CPU_DESCRIPTOR_HANDLE     rtvHandle   = getRTVHandle();
+  const CD3DX12_CPU_DESCRIPTOR_HANDLE     dsvHandle   = getDSVHandle();
   // TODO Implement me!
 
   commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, &dsvHandle);

@@ -7,6 +7,8 @@
 #include <gimslib/ui/ExaminerController.hpp>
 #include <PerFrameConstantsStruct.h>
 #include <UIDataStruct.h>
+#include <vector>
+#include <VertexStruct.h>
 
 class MeshViewer : public gims::DX12App
 {
@@ -25,21 +27,11 @@ private:
   // Transformationen
   gims::f32m4              m_normalizationTransformation;
 
-  // Vertex und Index Buffer
-  ComPtr<ID3D12Resource>   m_vertexBuffer;
-  ComPtr<ID3D12Resource>   m_indexBuffer;
-  D3D12_VERTEX_BUFFER_VIEW m_vertexBufferView;
-  D3D12_INDEX_BUFFER_VIEW  m_indexBufferView;
-
-  // Constant Buffer
-  ComPtr<ID3D12Resource>   m_constantBuffer;
-  PerFrameConstants        m_constantBufferData;
-  UINT8*                   m_mappedConstantBuffer;  // Pointer zum gemappten Constant Buffer
-
-  // Anzahl der Indizes für das Draw-Call
-  UINT                     m_indexCount;
-
   UiData                   m_uiData;
+
+  std::vector<Vertex>	   m_mesh;
+
+  void loadAndStoreMesh();
 };
 
 #endif // TRIANGLE_APP_HEADER
