@@ -1,4 +1,12 @@
 // TriangleMesh.hlsl
+
+struct VertexInput
+{
+    float3 position : POSITION;
+    float3 normal : NORMAL;
+    float2 texCoord : TEXCOORD;
+};
+
 struct VertexShaderOutput
 {
   float4 position : SV_POSITION;
@@ -27,14 +35,14 @@ cbuffer PerFrameConstants : register(b0)
 Texture2D<float3> g_texture : register(t0);
 SamplerState      g_sampler : register(s0);
 
-VertexShaderOutput VS_main(float3 position : POSITION, float3 normal : NORMAL, float2 texCoord : TEXCOORD)
+VertexShaderOutput VS_main(VertexInput input)
 {
   VertexShaderOutput output;
 
-  output.position          = mul(mvp, float4(position, 1.0f));
-  output.viewSpacePosition = mul(mv, float4(position, 1.0f)).xyz;
-  output.viewSpaceNormal   = mul(mv, float4(normal, 0.0f)).xyz;
-  output.texCoord          = texCoord;
+  output.position          = mul(mvp, float4(input.position, 1.0f));
+  output.viewSpacePosition = mul(mv, float4(input.position, 1.0f)).xyz;
+  output.viewSpaceNormal   = mul(mv, float4(input.normal, 0.0f)).xyz;
+  output.texCoord          = input.texCoord;
   return output;
 }
 
@@ -68,11 +76,11 @@ float4 PS_main(VertexShaderOutput input)
 
 }
 
-VertexShaderOutput_Wireframe VS_WireFrame_main(float3 position : POSITION, float3 normal : NORMAL, float2 texCoord : TEXCOORD)
+VertexShaderOutput_Wireframe VS_WireFrame_main(VertexInput WF_input)
 {
     VertexShaderOutput_Wireframe output;
 
-    output.position          = mul(mvp, float4(position, 1.0f));
+    output.position = mul(mvp, float4(WF_input.position, 1.0f));
     return output;
 }
 
