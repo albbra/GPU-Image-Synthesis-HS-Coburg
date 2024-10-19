@@ -5,7 +5,6 @@
 #include <gimslib/d3d/DX12App.hpp>
 #include <gimslib/types.hpp>
 #include <gimslib/ui/ExaminerController.hpp>
-#include <gimslib/io/CograBinaryMeshFile.hpp>
 #include <PerFrameConstantsStruct.h>
 #include <UIDataStruct.h>
 
