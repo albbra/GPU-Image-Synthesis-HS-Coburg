@@ -74,6 +74,28 @@ void MeshViewer::loadAndStoreMesh()
   const ui32* indices    = cbm.getTriangleIndices();
   ui32        nTriangles = cbm.getNumTriangles();
 
+  const f32* normalsRaw = static_cast<const f32*>(cbm.getAttributePtr(0));
+  const f32v3* normals = reinterpret_cast<const f32v3*>(normalsRaw);
+
+  const f32* texCoordsRaw = static_cast<const f32*>(cbm.getAttributePtr(1));
+  const f32v2* texCoords = reinterpret_cast<const f32v2*>(texCoordsRaw);
+
+
+  m_mesh.resize(numVertices);
+  
+  for (gims::ui32 i = 0; i < numVertices; ++i)
+  {
+    Vertex nVertex = {};
+
+    nVertex.position = positions[i];
+
+    nVertex.normal = normals[i];
+
+    nVertex.texCoord = texCoords[i];
+
+    m_mesh[i] = nVertex;
+  }
+
   (void*)indices;
   (void)nTriangles;
 }
