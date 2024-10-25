@@ -2,13 +2,13 @@
 #ifndef TRIANGLE_APP_HEADER
 #define TRIANGLE_APP_HEADER
 
+#include <PerFrameConstantsStruct.h>
+#include <UIDataStruct.h>
+#include <VertexStruct.h>
 #include <gimslib/d3d/DX12App.hpp>
 #include <gimslib/types.hpp>
 #include <gimslib/ui/ExaminerController.hpp>
-#include <PerFrameConstantsStruct.h>
-#include <UIDataStruct.h>
 #include <vector>
-#include <VertexStruct.h>
 
 class MeshViewer : public gims::DX12App
 {
@@ -20,18 +20,33 @@ public:
   virtual void onDraw();
   virtual void onDrawUI();
 
-private:  
+private:
   // ExaminerController zur Kamerasteuerung
-  gims::ExaminerController m_examinerController;
+  gims::ExaminerController    m_examinerController;
+  ComPtr<ID3D12PipelineState> m_pipelineState;
+  ComPtr<ID3D12RootSignature> m_rootSignature;
 
-  // Transformationen
-  gims::f32m4              m_normalizationTransformation;
+  ComPtr<ID3D12Resource>      m_vertexBuffer;
+  D3D12_VERTEX_BUFFER_VIEW    m_vertexBufferView;
 
-  UiData                   m_uiData;
+  ComPtr<ID3D12Resource>      m_indexBuffer;
+  D3D12_INDEX_BUFFER_VIEW     m_indexBufferView;
 
-  std::vector<Vertex>	   m_mesh;
+  ComPtr<ID3D12Resource>      m_perFrameConstantsBuffer;
 
-  void loadAndStoreMesh();
+  gims::f32m4                 m_normalizationTransformation;
+
+  UiData                      m_uiData;
+
+  PerFrameConstants           m_perFrameData;
+
+  gims::f32m4                 m_view;
+  gims::f32m4                 m_projection;
+
+  void createRootSignature();
+  void createPipeline();
+  void loadMesh();
+  void createConstantBuffer();
 };
 
 #endif // TRIANGLE_APP_HEADER

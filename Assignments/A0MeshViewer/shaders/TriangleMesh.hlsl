@@ -32,8 +32,8 @@ cbuffer PerFrameConstants : register(b0)
   uint1    flags;
 }
 
-Texture2D<float3> g_texture : register(t0);
-SamplerState      g_sampler : register(s0);
+//Texture2D<float3> g_texture : register(t0);
+//SamplerState      g_sampler : register(s0);
 
 VertexShaderOutput VS_main(VertexInput input)
 {
@@ -68,7 +68,8 @@ float4 PS_main(VertexShaderOutput input)
     float f_diffuse  = max(0.0f, dot(n, l));
     float f_specular = pow(max(0.0f, dot(n, h)), specularColor_and_Exponent.w);
 
-    float3 textureColor = useTexture ? g_texture.Sample(g_sampler, input.texCoord, 0) : float4(1, 1, 1, 0);
+    //float3 textureColor = useTexture ? g_texture.Sample(g_sampler, input.texCoord, 0) : float4(1, 1, 1, 0);
+    float3 textureColor = float3(1, 1, 1);
 
     return float4(ambientColor.xyz + f_diffuse * diffuseColor.xyz * textureColor.xyz +
                       f_specular * specularColor_and_Exponent.xyz,
