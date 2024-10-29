@@ -5,8 +5,16 @@
 
 struct UiData
 {
-  gims::f32v3 m_backgroundColor  = gims::f32v3(0.25f, 0.25f, 0.25f);
-  // TODO Implement me!
+  gims::f32v3 backgroundColor;
+  bool        backFaceCulling;
+  bool        overlayWireframe;
+  gims::f32v3 wireframeColor;
+  bool        twoSidedLighting;
+  bool        useTexture;
+  gims::f32v3 ambientColor;
+  gims::f32v3 diffuseColor;
+  gims::f32v3 specularColor;
+  gims::f32   exponent;
 };
 
 #endif // UI_DATA_STRUCT

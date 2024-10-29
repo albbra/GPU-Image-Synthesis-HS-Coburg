@@ -72,6 +72,7 @@ MeshViewer::MeshViewer(const DX12AppConfig config)
   createRootSignature();
   createPipeline();
   loadMesh();
+  setStartUIData();
   createConstantBuffer();
 }
 
@@ -124,9 +125,9 @@ void MeshViewer::createPipeline()
   psoDesc.NumRenderTargets                 = 1;
   psoDesc.SampleDesc.Count                 = 1;
   psoDesc.RTVFormats[0]                    = getRenderTarget()->GetDesc().Format;
-  psoDesc.DSVFormat                        = getDepthStencil()->GetDesc().Format;
-  psoDesc.DepthStencilState.DepthEnable    = FALSE;
-  psoDesc.DepthStencilState.DepthFunc      = D3D12_COMPARISON_FUNC_ALWAYS;
+  psoDesc.DSVFormat                        = DXGI_FORMAT_D32_FLOAT;
+  psoDesc.DepthStencilState.DepthEnable    = TRUE;
+  psoDesc.DepthStencilState.DepthFunc      = D3D12_COMPARISON_FUNC_LESS;
   psoDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
   psoDesc.DepthStencilState.StencilEnable  = FALSE;
 
@@ -223,7 +224,7 @@ void MeshViewer::createConstantBuffer()
   // Set additional per-frame constants
   m_perFrameData.specularColor_and_Exponent = {1.0f, 1.0f, 1.0f, 32.0f};
   m_perFrameData.ambientColor               = {0.2f, 0.2f, 0.2f, 1.0f};
-  m_perFrameData.diffuseColor               = {1.0f, 1.0f, 1.0f, 1.0f};
+  m_perFrameData.diffuseColor               = {0.9f, 0.9f, 0.9f, 1.0f};
   m_perFrameData.wireFrameColor             = {1.0f, 0.0f, 0.0f, 1.0f};
   m_perFrameData.flags                      = {0};
 
@@ -271,6 +272,20 @@ void MeshViewer::createConstantBuffer()
   }
 }
 
+void MeshViewer::setStartUIData()
+{
+  m_uiData.backgroundColor  = gims::f32v3(0.25f, 0.25f, 0.25f);
+  m_uiData.backFaceCulling  = false;
+  m_uiData.overlayWireframe = false;
+  m_uiData.wireframeColor   = gims::f32v3(0.0f, 0.0f, 0.0f);
+  m_uiData.twoSidedLighting = false;
+  m_uiData.useTexture       = false;
+  m_uiData.ambientColor     = gims::f32v3(0.0f, 0.0f, 0.0f);
+  m_uiData.diffuseColor     = gims::f32v3(1.0f, 1.0f, 1.0f);
+  m_uiData.specularColor    = gims::f32v3(1.0f, 1.0f, 1.0f);
+  m_uiData.exponent         = 128.0f;
+}
+
 MeshViewer::~MeshViewer()
 {
 }
@@ -298,8 +313,9 @@ void MeshViewer::onDraw()
 
   // Update transformation matrices for this frame
   f32m4 transformationMatrix = m_examinerController.getTransformationMatrix();
-  m_perFrameData.mvp         = m_projection * m_view * transformationMatrix;
-  m_perFrameData.mv          = m_view * transformationMatrix;
+
+  // Update the PerFrameData
+  setPerFrameData(transformationMatrix);
 
   // Update the constant buffer for the current frame
   updateConstantBuffer();
@@ -317,8 +333,7 @@ void MeshViewer::onDraw()
 
   commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, &dsvHandle);
 
-  const float clearColor[] = {m_uiData.m_backgroundColor.x, m_uiData.m_backgroundColor.y, m_uiData.m_backgroundColor.z,
-                              1.0f};
+  const float clearColor[] = {m_uiData.backgroundColor.x, m_uiData.backgroundColor.y, m_uiData.backgroundColor.z, 1.0f};
   commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
   commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
@@ -334,9 +349,21 @@ void MeshViewer::onDraw()
   commandList->DrawIndexedInstanced(m_indexBufferView.SizeInBytes / sizeof(ui32), 1, 0, 0, 0);
 }
 
+void MeshViewer::setPerFrameData(gims::f32m4& newTransformationMatrix)
+{
+  m_perFrameData.mvp                        = m_projection * m_view * newTransformationMatrix;
+  m_perFrameData.mv                         = m_view * newTransformationMatrix;
+  m_perFrameData.specularColor_and_Exponent = {m_uiData.specularColor, m_uiData.exponent};
+  m_perFrameData.ambientColor               = {m_uiData.ambientColor, 1.0f};
+  m_perFrameData.diffuseColor               = {m_uiData.diffuseColor, 1.0f};
+  m_perFrameData.wireFrameColor             = {m_uiData.wireframeColor, 1.0f};
+
+  m_perFrameData.flags = (m_perFrameData.flags & ~0x1) | (m_uiData.twoSidedLighting ? 0x1 : 0);
+  m_perFrameData.flags = (m_perFrameData.flags & ~0x2) | (m_uiData.useTexture ? 0x2 : 0);
+}
+
 void MeshViewer::updateConstantBuffer()
 {
-  PerFrameConstants             cb                    = m_perFrameData;
   const ComPtr<ID3D12Resource>& currentConstantBuffer = m_constantBuffers[this->getFrameIndex()];
 
   void* mappedData = nullptr;
@@ -347,10 +374,18 @@ void MeshViewer::updateConstantBuffer()
 
 void MeshViewer::onDrawUI()
 {
-  const auto imGuiFlags = m_examinerController.active() ? ImGuiWindowFlags_NoInputs : ImGuiWindowFlags_None;
-  // TODO Implement me!
-  ImGui::Begin("Information", nullptr, imGuiFlags);
+  const ImGuiWindowFlags imGuiFlags = m_examinerController.active() ? ImGuiWindowFlags_NoInputs : ImGuiWindowFlags_None;
+  ImGui::Begin("Configuration", nullptr, imGuiFlags);
+  ImGui::ColorEdit3("Background Color", reinterpret_cast<float*>(&m_uiData.backgroundColor));
+  ImGui::Checkbox("Back-Face Culling", &m_uiData.backFaceCulling);
+  ImGui::Checkbox("Overlay Wireframe", &m_uiData.overlayWireframe);
+  ImGui::ColorEdit3("Wireframe Color", reinterpret_cast<float*>(&m_uiData.wireframeColor));
+  ImGui::Checkbox("Two-Sided Lighting", &m_uiData.twoSidedLighting);
+  ImGui::Checkbox("Use Texture", &m_uiData.useTexture);
+  ImGui::ColorEdit3("Ambient", reinterpret_cast<float*>(&m_uiData.ambientColor));
+  ImGui::ColorEdit3("Diffuse", reinterpret_cast<float*>(&m_uiData.diffuseColor));
+  ImGui::ColorEdit3("Specular", reinterpret_cast<float*>(&m_uiData.specularColor));
+  ImGui::SliderFloat("Exponent", &m_uiData.exponent, 0.0f, 1024.0f);
   ImGui::Text("Frametime: %f", 1.0f / ImGui::GetIO().Framerate * 1000.0f);
   ImGui::End();
-  // TODO Implement me!
 }

@@ -46,6 +46,8 @@ private:
   void createRootSignature();
   void createPipeline();
   void loadMesh();
+  void setStartUIData();
+  void setPerFrameData(gims::f32m4& newTransformationMatrix);
   void createConstantBuffer();
   void updateConstantBuffer();
 };
