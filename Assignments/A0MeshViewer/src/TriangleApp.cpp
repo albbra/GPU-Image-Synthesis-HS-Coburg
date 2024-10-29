@@ -59,7 +59,8 @@ MeshViewer::MeshViewer(const DX12AppConfig config)
     , m_vertexBufferView()
     , m_indexBuffer()
     , m_indexBufferView()
-    , m_perFrameConstantsBuffer()
+    , m_constantBuffers()
+    , m_cbv()
     , m_normalizationTransformation()
     , m_uiData()
     , m_perFrameData()
@@ -152,7 +153,7 @@ void MeshViewer::loadMesh()
 
   vertexBufferCPU.resize(numVertices);
 
-  for (gims::ui32 i = 0; i < numVertices; ++i)
+  for (ui32 i = 0; i < numVertices; ++i)
   {
     Vertex nVertex = {};
 
@@ -198,44 +199,76 @@ void MeshViewer::loadMesh()
 
 void MeshViewer::createConstantBuffer()
 {
-  f32m4 viewMatrix   = m_examinerController.getTransformationMatrix();
-  m_perFrameData.mvp = viewMatrix * m_normalizationTransformation;
-
+  f32m4 viewMatrix                          = m_examinerController.getTransformationMatrix();
+  m_perFrameData.mvp                        = viewMatrix * m_normalizationTransformation;
   m_perFrameData.ambientColor               = f32v4(0.1f, 0.1f, 0.1f, 1.0f);
   m_perFrameData.diffuseColor               = f32v4(0.8f, 0.8f, 0.8f, 1.0f);
   m_perFrameData.specularColor_and_Exponent = f32v4(1.0f, 1.0f, 1.0f, 32.0f);
 
+  // Calculate the view and projection matrices
   f32v3 cameraPosition = {0.0f, 0.0f, 5.0f};
   f32v3 centerPosition = {0.0f, 0.0f, 0.0f};
   f32v3 upPosition     = {0.0f, 1.0f, 0.0f};
   m_view               = glm::lookAt(glm::vec3(cameraPosition), glm::vec3(centerPosition), glm::vec3(upPosition));
 
   f32 constexpr fieldOfView = glm::radians(45.0f);
-  f32 aspectRatio           = (f32)500 / 500;
+  f32 aspectRatio           = static_cast<f32>(500) / 500;
   f32 nearPlane             = 0.2f;
   f32 farPlane              = 10.0f;
   m_projection              = glm::perspective(fieldOfView, aspectRatio, nearPlane, farPlane);
 
   m_perFrameData.mvp = m_projection * m_view * glm::mat4(1.0f);
+  m_perFrameData.mv  = m_view * glm::mat4(1.0f);
 
-  m_perFrameData.mv = m_view * glm::mat4(1.0f);
-
+  // Set additional per-frame constants
   m_perFrameData.specularColor_and_Exponent = {1.0f, 1.0f, 1.0f, 32.0f};
   m_perFrameData.ambientColor               = {0.2f, 0.2f, 0.2f, 1.0f};
   m_perFrameData.diffuseColor               = {1.0f, 1.0f, 1.0f, 1.0f};
   m_perFrameData.wireFrameColor             = {1.0f, 0.0f, 0.0f, 1.0f};
   m_perFrameData.flags                      = {0};
 
-  CD3DX12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_UPLOAD);
-  CD3DX12_RESOURCE_DESC   bufferDesc = CD3DX12_RESOURCE_DESC::Buffer((sizeof(PerFrameConstants) + 255) & ~255);
-  getDevice()->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE, &bufferDesc,
-                                       D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
-                                       IID_PPV_ARGS(&m_perFrameConstantsBuffer));
+  // Determine the number of frames to create buffers for
+  const ui32 frameCount = getDX12AppConfig().frameCount;
+  m_constantBuffers.resize(frameCount);
 
-  void* mappedData;
-  m_perFrameConstantsBuffer->Map(0, nullptr, &mappedData);
-  memcpy(mappedData, &m_perFrameData, sizeof(m_perFrameData));
-  m_perFrameConstantsBuffer->Unmap(0, nullptr);
+  // Create each buffer for each frame
+  for (ui32 i = 0; i < frameCount; i++)
+  {
+    static const CD3DX12_HEAP_PROPERTIES uploadHeapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+    static const CD3DX12_RESOURCE_DESC   bufferDesc =
+        CD3DX12_RESOURCE_DESC::Buffer((sizeof(PerFrameConstants) + 0xff) & ~0xff);
+
+    getDevice()->CreateCommittedResource(&uploadHeapProperties, D3D12_HEAP_FLAG_NONE, &bufferDesc,
+                                         D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
+                                         IID_PPV_ARGS(&m_constantBuffers[i]));
+
+    // Map and copy data for each frame’s constant buffer
+    void* mappedData;
+    m_constantBuffers[i]->Map(0, nullptr, &mappedData);
+    memcpy(mappedData, &m_perFrameData, sizeof(m_perFrameData));
+    m_constantBuffers[i]->Unmap(0, nullptr);
+  }
+
+  // Create descriptor heap for CBV
+  D3D12_DESCRIPTOR_HEAP_DESC desc = {};
+  desc.NumDescriptors             = frameCount;
+  desc.Type                       = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+  desc.Flags                      = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+  getDevice()->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_cbv));
+
+  // Create CBV for each frame
+  for (ui32 i = 0; i < frameCount; i++)
+  {
+    D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+    cbvDesc.BufferLocation                  = m_constantBuffers[i]->GetGPUVirtualAddress();
+    cbvDesc.SizeInBytes                     = (sizeof(PerFrameConstants) + 0xff) & ~0xff;
+
+    CD3DX12_CPU_DESCRIPTOR_HANDLE cbvHandle(
+        m_cbv->GetCPUDescriptorHandleForHeapStart(), i,
+        getDevice()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
+
+    getDevice()->CreateConstantBufferView(&cbvDesc, cbvHandle);
+  }
 }
 
 MeshViewer::~MeshViewer()
@@ -244,6 +277,8 @@ MeshViewer::~MeshViewer()
 
 void MeshViewer::onDraw()
 {
+  const ui32 frameIndex = getFrameIndex();
+
   if (!ImGui::GetIO().WantCaptureMouse)
   {
     bool pressed  = ImGui::IsMouseClicked(ImGuiMouseButton_Left) || ImGui::IsMouseClicked(ImGuiMouseButton_Right);
@@ -261,27 +296,29 @@ void MeshViewer::onDraw()
     }
   }
 
+  // Update transformation matrices for this frame
   f32m4 transformationMatrix = m_examinerController.getTransformationMatrix();
-  f32m4 mvp                  = m_projection * m_view * transformationMatrix;
-  m_perFrameData.mvp         = mvp;
+  m_perFrameData.mvp         = m_projection * m_view * transformationMatrix;
   m_perFrameData.mv          = m_view * transformationMatrix;
 
-  void* mappedData;
-  m_perFrameConstantsBuffer->Map(0, nullptr, &mappedData);
-  memcpy(mappedData, &m_perFrameData, sizeof(m_perFrameData));
-  m_perFrameConstantsBuffer->Unmap(0, nullptr);
+  // Update the constant buffer for the current frame
+  updateConstantBuffer();
 
   const ComPtr<ID3D12GraphicsCommandList> commandList = getCommandList();
   const CD3DX12_CPU_DESCRIPTOR_HANDLE     rtvHandle   = getRTVHandle();
   const CD3DX12_CPU_DESCRIPTOR_HANDLE     dsvHandle   = getDSVHandle();
 
+  // Set root signature
   commandList->SetGraphicsRootSignature(m_rootSignature.Get());
-  commandList->SetGraphicsRootConstantBufferView(0, m_perFrameConstantsBuffer->GetGPUVirtualAddress());
+
+  // Set the constant buffer directly without using a descriptor table
+  const ComPtr<ID3D12Resource>& currentConstantBuffer = m_constantBuffers[frameIndex];
+  commandList->SetGraphicsRootConstantBufferView(0, currentConstantBuffer->GetGPUVirtualAddress());
+
   commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, &dsvHandle);
 
   const float clearColor[] = {m_uiData.m_backgroundColor.x, m_uiData.m_backgroundColor.y, m_uiData.m_backgroundColor.z,
                               1.0f};
-
   commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
   commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
@@ -297,6 +334,17 @@ void MeshViewer::onDraw()
   commandList->DrawIndexedInstanced(m_indexBufferView.SizeInBytes / sizeof(ui32), 1, 0, 0, 0);
 }
 
+void MeshViewer::updateConstantBuffer()
+{
+  PerFrameConstants             cb                    = m_perFrameData;
+  const ComPtr<ID3D12Resource>& currentConstantBuffer = m_constantBuffers[this->getFrameIndex()];
+
+  void* mappedData = nullptr;
+  currentConstantBuffer->Map(0, nullptr, &mappedData);
+  ::memcpy(mappedData, &m_perFrameData, sizeof(m_perFrameData));
+  currentConstantBuffer->Unmap(0, nullptr);
+}
+
 void MeshViewer::onDrawUI()
 {
   const auto imGuiFlags = m_examinerController.active() ? ImGuiWindowFlags_NoInputs : ImGuiWindowFlags_None;
@@ -306,7 +354,3 @@ void MeshViewer::onDrawUI()
   ImGui::End();
   // TODO Implement me!
 }
-
-// TODO Implement me!
-// That is a hell lot of code :-)
-// Enjoy!

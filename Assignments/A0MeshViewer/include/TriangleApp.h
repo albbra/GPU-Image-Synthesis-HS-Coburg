@@ -21,32 +21,33 @@ public:
   virtual void onDrawUI();
 
 private:
-  // ExaminerController zur Kamerasteuerung
   gims::ExaminerController    m_examinerController;
   ComPtr<ID3D12PipelineState> m_pipelineState;
   ComPtr<ID3D12RootSignature> m_rootSignature;
 
-  ComPtr<ID3D12Resource>      m_vertexBuffer;
-  D3D12_VERTEX_BUFFER_VIEW    m_vertexBufferView;
+  ComPtr<ID3D12Resource>   m_vertexBuffer;
+  D3D12_VERTEX_BUFFER_VIEW m_vertexBufferView;
 
-  ComPtr<ID3D12Resource>      m_indexBuffer;
-  D3D12_INDEX_BUFFER_VIEW     m_indexBufferView;
+  ComPtr<ID3D12Resource>  m_indexBuffer;
+  D3D12_INDEX_BUFFER_VIEW m_indexBufferView;
 
-  ComPtr<ID3D12Resource>      m_perFrameConstantsBuffer;
+  std::vector<ComPtr<ID3D12Resource>> m_constantBuffers;
+  ComPtr<ID3D12DescriptorHeap>        m_cbv;
 
-  gims::f32m4                 m_normalizationTransformation;
+  gims::f32m4 m_normalizationTransformation;
 
-  UiData                      m_uiData;
+  UiData m_uiData;
 
-  PerFrameConstants           m_perFrameData;
+  PerFrameConstants m_perFrameData;
 
-  gims::f32m4                 m_view;
-  gims::f32m4                 m_projection;
+  gims::f32m4 m_view;
+  gims::f32m4 m_projection;
 
   void createRootSignature();
   void createPipeline();
   void loadMesh();
   void createConstantBuffer();
+  void updateConstantBuffer();
 };
 
 #endif // TRIANGLE_APP_HEADER
