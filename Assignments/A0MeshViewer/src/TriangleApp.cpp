@@ -131,6 +131,10 @@ void MeshViewer::createPipeline()
   psoDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
   psoDesc.DepthStencilState.StencilEnable  = FALSE;
 
+  throwIfFailed(getDevice()->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineStateWithoutCulling)));
+
+  psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_FRONT;
+
   throwIfFailed(getDevice()->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
 }
 
@@ -340,7 +344,14 @@ void MeshViewer::onDraw()
   commandList->RSSetViewports(1, &getViewport());
   commandList->RSSetScissorRects(1, &getRectScissor());
 
-  commandList->SetPipelineState(m_pipelineState.Get());
+  if (m_uiData.backFaceCulling)
+  {
+    commandList->SetPipelineState(m_pipelineState.Get());
+  }
+  else
+  {
+    commandList->SetPipelineState(m_pipelineStateWithoutCulling.Get());
+  }
 
   commandList->IASetVertexBuffers(0, 1, &m_vertexBufferView);
   commandList->IASetIndexBuffer(&m_indexBufferView);
