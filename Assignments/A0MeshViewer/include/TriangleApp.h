@@ -35,6 +35,9 @@ private:
   std::vector<ComPtr<ID3D12Resource>> m_constantBuffers;
   ComPtr<ID3D12DescriptorHeap>        m_cbv;
 
+  ComPtr<ID3D12Resource>       m_texture;
+  ComPtr<ID3D12DescriptorHeap> m_srv;
+
   gims::f32m4 m_normalizationTransformation;
 
   UiData m_uiData;
@@ -47,6 +50,7 @@ private:
   void createRootSignature();
   void createPipeline();
   void loadMesh();
+  void loadTexture();
   void setStartUIData();
   void setPerFrameData(gims::f32m4& newTransformationMatrix);
   void createConstantBuffer();

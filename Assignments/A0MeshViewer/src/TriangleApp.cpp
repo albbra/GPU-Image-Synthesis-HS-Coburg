@@ -1,8 +1,8 @@
 // TriangleApp.cpp
 #include "TriangleApp.h"
 #include "PerFrameConstantsStruct.h"
+#include "TextureLoader.h"
 #include <d3dx12/d3dx12.h>
-#include <gimslib/contrib/stb/stb_image.h>
 #include <gimslib/d3d/DX12Util.hpp>
 #include <gimslib/d3d/UploadHelper.hpp>
 #include <gimslib/dbg/HrException.hpp>
@@ -72,17 +72,25 @@ MeshViewer::MeshViewer(const DX12AppConfig config)
   createRootSignature();
   createPipeline();
   loadMesh();
+  loadTexture();
   setStartUIData();
   createConstantBuffer();
 }
 
 void MeshViewer::createRootSignature()
 {
-  CD3DX12_ROOT_PARAMETER rootParameters[1] = {};
+  CD3DX12_ROOT_PARAMETER rootParameters[2] = {};
   rootParameters[0].InitAsConstantBufferView(0);
 
-  // Define a static sampler
+  // Descriptor table for the texture SRV
+  CD3DX12_DESCRIPTOR_RANGE range {D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0};
+  rootParameters[1].InitAsDescriptorTable(1, &range);
+
   CD3DX12_STATIC_SAMPLER_DESC samplerDesc(0);
+  samplerDesc.Filter   = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+  samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+  samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+  samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
 
   CD3DX12_ROOT_SIGNATURE_DESC descRootSignature = {};
   descRootSignature.Init(_countof(rootParameters), rootParameters, 1, &samplerDesc,
@@ -200,6 +208,46 @@ void MeshViewer::loadMesh()
   m_indexBufferView.Format         = DXGI_FORMAT_R32_UINT;
 
   uploadBuffer.uploadBuffer(indexBufferCPU.data(), m_indexBuffer, indexBufferCPUSizeInBytes, getCommandQueue());
+}
+
+void MeshViewer::loadTexture()
+{
+  TextureLoader bunnyTexture("../../../data/bunny.png");
+
+  D3D12_RESOURCE_DESC textureDesc = {};
+  textureDesc.MipLevels           = 1;
+  textureDesc.Format              = DXGI_FORMAT_R8G8B8A8_UNORM;
+  textureDesc.Width               = bunnyTexture.getWidth();
+  textureDesc.Height              = bunnyTexture.getHeight();
+  textureDesc.Flags               = D3D12_RESOURCE_FLAG_NONE;
+  textureDesc.DepthOrArraySize    = 1;
+  textureDesc.SampleDesc.Count    = 1;
+  textureDesc.SampleDesc.Quality  = 0;
+  textureDesc.Dimension           = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+
+  const auto heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+  throwIfFailed(getDevice()->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE, &textureDesc,
+                                                     D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&m_texture)));
+
+  UploadHelper uploadHelper(getDevice(), GetRequiredIntermediateSize(m_texture.Get(), 0, 1));
+  uploadHelper.uploadTexture(bunnyTexture.getData(), m_texture, bunnyTexture.getWidth(), bunnyTexture.getHeight(), getCommandQueue());
+
+  D3D12_DESCRIPTOR_HEAP_DESC desc = {};
+  desc.Type                       = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+  desc.NumDescriptors             = 1;
+  desc.NodeMask                   = 0;
+  desc.Flags                      = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+  throwIfFailed(getDevice()->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_srv)));
+
+  D3D12_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc = {};
+  shaderResourceViewDesc.ViewDimension                   = D3D12_SRV_DIMENSION_TEXTURE2D;
+  shaderResourceViewDesc.Shader4ComponentMapping         = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+  shaderResourceViewDesc.Format                          = DXGI_FORMAT_R8G8B8A8_UNORM;
+  shaderResourceViewDesc.Texture2D.MipLevels             = 1;
+  shaderResourceViewDesc.Texture2D.MostDetailedMip       = 0;
+  shaderResourceViewDesc.Texture2D.ResourceMinLODClamp   = 0.0f;
+  getDevice()->CreateShaderResourceView(m_texture.Get(), &shaderResourceViewDesc,
+                                        m_srv->GetCPUDescriptorHandleForHeapStart());
 }
 
 void MeshViewer::createConstantBuffer()
@@ -330,6 +378,9 @@ void MeshViewer::onDraw()
 
   // Set root signature
   commandList->SetGraphicsRootSignature(m_rootSignature.Get());
+
+  commandList->SetDescriptorHeaps(1, m_srv.GetAddressOf());
+  commandList->SetGraphicsRootDescriptorTable(1, m_srv->GetGPUDescriptorHandleForHeapStart());
 
   // Set the constant buffer directly without using a descriptor table
   const ComPtr<ID3D12Resource>& currentConstantBuffer = m_constantBuffers[frameIndex];
