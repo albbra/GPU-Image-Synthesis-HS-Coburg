@@ -24,6 +24,7 @@ private:
   gims::ExaminerController    m_examinerController;
   ComPtr<ID3D12PipelineState> m_pipelineState;
   ComPtr<ID3D12PipelineState> m_pipelineStateWithoutCulling;
+  ComPtr<ID3D12PipelineState> m_wireframePipelineState;
   ComPtr<ID3D12RootSignature> m_rootSignature;
 
   ComPtr<ID3D12Resource>   m_vertexBuffer;
