@@ -1,13 +1,12 @@
-#pragma once
+// TriangleMeshD3D12.hpp
+#ifndef TRIANGLE_MESH_D3D12_CLASS
+#define TRIANGLE_MESH_D3D12_CLASS
+
 #include "AABB.hpp"
 #include <d3d12.h>
 #include <gimslib/types.hpp>
 #include <vector>
 #include <wrl.h>
-using Microsoft::WRL::ComPtr;
-
-namespace gims
-{
 
 /// <summary>
 /// A D3D12 GPU triangle mesh.
@@ -28,15 +27,17 @@ public:
   /// <param name="materialIndex">Material index.</param>
   /// <param name="device">Device on which the GPU buffers should be created.</param>
   /// <param name="commandQueue">Command queue used to copy the data from the GPU to the GPU.</param>
-  TriangleMeshD3D12(f32v3 const* const positions, f32v3 const* const normals, f32v3 const* const textureCoordinates,
-                    ui32 nVertices, ui32v3 const* const indexBuffer, ui32 nIndices, ui32 materialIndex,
-                    const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12CommandQueue>& commandQueue);
+  TriangleMeshD3D12(gims::f32v3 const* const positions, gims::f32v3 const* const normals,
+                    gims::f32v3 const* const textureCoordinates, gims::ui32 nVertices,
+                    gims::ui32v3 const* const indexBuffer, gims::ui32 nIndices, gims::ui32 materialIndex,
+                    const Microsoft::WRL::ComPtr<ID3D12Device>&       device,
+                    const Microsoft::WRL::ComPtr<ID3D12CommandQueue>& commandQueue);
 
   /// <summary>
   /// Adds the commands neccessary for rendering this triangle mesh to the provided commandList.
   /// </summary>
   /// <param name="commandList">The command list</param>
-  void addToCommandList(const ComPtr<ID3D12GraphicsCommandList>& commandList) const;
+  void addToCommandList(const Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>& commandList) const;
 
   /// <summary>
   /// Returns the axis-aligned bounding-box of the mesh.
@@ -48,7 +49,7 @@ public:
   /// Gets the matrix index of this mesh.
   /// </summary>
   /// <returns><The material index of the mesh./returns>
-  const ui32 getMaterialIndex() const;
+  const gims::ui32 getMaterialIndex() const;
 
   /// <summary>
   /// Returns the input element descriptors required for the pipeline.
@@ -63,16 +64,16 @@ public:
   TriangleMeshD3D12& operator=(TriangleMeshD3D12&& other) noexcept = default;
 
 private:
-  ui32                   m_nIndices;         //! Number of indices in the index buffer.
-  ui32                   m_vertexBufferSize; //! Vertex buffer size in bytes.
-  ui32                   m_indexBufferSize;  //! Index buffer size in bytes.
-  AABB                   m_aabb;             //! Axis aligned bounding box of the mesh.
-  ui32                   m_materialIndex;    //! Material index of the mesh.
-  ComPtr<ID3D12Resource> m_vertexBuffer;     //! The vertex buffer on the GPU.
-  ComPtr<ID3D12Resource> m_indexBuffer;      //! The index buffer on the GPU.
+  gims::ui32                             m_nIndices;         //! Number of indices in the index buffer.
+  gims::ui32                             m_vertexBufferSize; //! Vertex buffer size in bytes.
+  gims::ui32                             m_indexBufferSize;  //! Index buffer size in bytes.
+  AABB                                   m_aabb;             //! Axis aligned bounding box of the mesh.
+  gims::ui32                             m_materialIndex;    //! Material index of the mesh.
+  Microsoft::WRL::ComPtr<ID3D12Resource> m_vertexBuffer;     //! The vertex buffer on the GPU.
+  Microsoft::WRL::ComPtr<ID3D12Resource> m_indexBuffer;      //! The index buffer on the GPU.
 
   //! Input element descriptor defining the vertex format.
   static const std::vector<D3D12_INPUT_ELEMENT_DESC> m_inputElementDescs;
 };
 
-} // namespace gims
+#endif // TRIANGLE_MESH_D3D12_CLASS

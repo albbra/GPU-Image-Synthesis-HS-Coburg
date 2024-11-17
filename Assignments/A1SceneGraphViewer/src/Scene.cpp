@@ -1,14 +1,13 @@
+// Scene.cpp
+
 #include "Scene.hpp"
 #include <d3dx12/d3dx12.h>
 #include <unordered_map>
 
-using namespace gims;
-
-namespace
-{
-void addToCommandListImpl(Scene& scene, ui32 nodeIdx, f32m4 transformation,
-                          const ComPtr<ID3D12GraphicsCommandList>& commandList, ui32 modelViewRootParameterIdx,
-                          ui32 materialConstantsRootParameterIdx, ui32 srvRootParameterIdx)
+void static addToCommandListImpl(Scene& scene, gims::ui32 nodeIdx, gims::f32m4 transformation,
+                                 const Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>& commandList,
+                                 gims::ui32 modelViewRootParameterIdx, gims::ui32 materialConstantsRootParameterIdx,
+                                 gims::ui32 srvRootParameterIdx)
 {
   (void)scene;
   (void)nodeIdx;
@@ -20,31 +19,28 @@ void addToCommandListImpl(Scene& scene, ui32 nodeIdx, f32m4 transformation,
   // Assignemt 6
   // Assignment 10
 }
-} // namespace
 
-namespace gims
-{
-const Scene::Node& Scene::getNode(ui32 nodeIdx) const
+const Node& Scene::getNode(gims::ui32 nodeIdx) const
 {
   return m_nodes[nodeIdx];
 }
 
-Scene::Node& Scene::getNode(ui32 nodeIdx)
+Node& Scene::getNode(gims::ui32 nodeIdx)
 {
   return m_nodes[nodeIdx];
 }
 
-const ui32 Scene::getNumberOfNodes() const
+const gims::ui32 Scene::getNumberOfNodes() const
 {
-  return static_cast<ui32>(m_nodes.size());
+  return static_cast<gims::ui32>(m_nodes.size());
 }
 
-const TriangleMeshD3D12& Scene::getMesh(ui32 meshIdx) const
+const TriangleMeshD3D12& Scene::getMesh(gims::ui32 meshIdx) const
 {
   return m_meshes[meshIdx];
 }
 
-const Scene::Material& Scene::getMaterial(ui32 materialIdx) const
+const Material& Scene::getMaterial(gims::ui32 materialIdx) const
 {
   return m_materials[materialIdx];
 }
@@ -54,11 +50,10 @@ const AABB& Scene::getAABB() const
   return m_aabb;
 }
 
-void Scene::addToCommandList(const ComPtr<ID3D12GraphicsCommandList>& commandList, const f32m4 transformation,
-                             ui32 modelViewRootParameterIdx, ui32 materialConstantsRootParameterIdx,
-                             ui32 srvRootParameterIdx)
+void Scene::addToCommandList(const Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>& commandList,
+                             const gims::f32m4 transformation, gims::ui32 modelViewRootParameterIdx,
+                             gims::ui32 materialConstantsRootParameterIdx, gims::ui32 srvRootParameterIdx)
 {
   addToCommandListImpl(*this, 0, transformation, commandList, modelViewRootParameterIdx,
                        materialConstantsRootParameterIdx, srvRootParameterIdx);
 }
-} // namespace gims

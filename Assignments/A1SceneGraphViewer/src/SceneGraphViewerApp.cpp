@@ -1,3 +1,5 @@
+// SceneGraphViewerApp.cpp
+
 #include "SceneGraphViewerApp.hpp"
 #include "SceneFactory.hpp"
 #include <d3dx12/d3dx12.h>
@@ -10,14 +12,13 @@
 #include <imgui.h>
 #include <iostream>
 #include <vector>
-using namespace gims;
 
 SceneGraphViewerApp::SceneGraphViewerApp(const DX12AppConfig config, const std::filesystem::path pathToScene)
     : DX12App(config)
     , m_examinerController(true)
     , m_scene(SceneGraphFactory::createFromAssImpScene(pathToScene, getDevice(), getCommandQueue()))
 {
-  m_examinerController.setTranslationVector(f32v3(0, -0.25f, 1.5));
+  m_examinerController.setTranslationVector(gims::f32v3(0, -0.25f, 1.5));
   createRootSignature();
   createSceneConstantBuffer();
   createPipeline();
@@ -42,9 +43,9 @@ void SceneGraphViewerApp::onDraw()
     }
   }
 
-  const auto commandList = getCommandList();
-  const auto rtvHandle   = getRTVHandle();
-  const auto dsvHandle   = getDSVHandle();
+  const ComPtr<ID3D12GraphicsCommandList> commandList = getCommandList();
+  const CD3DX12_CPU_DESCRIPTOR_HANDLE     rtvHandle   = getRTVHandle();
+  const CD3DX12_CPU_DESCRIPTOR_HANDLE     dsvHandle   = getDSVHandle();
 
   commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, &dsvHandle);
 
@@ -78,10 +79,11 @@ void SceneGraphViewerApp::createRootSignature()
 void SceneGraphViewerApp::createPipeline()
 {
   waitForGPU();
-  const auto inputElementDescs = TriangleMeshD3D12::getInputElementDescriptors();
+  const std::vector<D3D12_INPUT_ELEMENT_DESC> inputElementDescs = TriangleMeshD3D12::getInputElementDescriptors();
 
-  const auto vertexShader = compileShader(L"../../../Assignments/A1SceneGraphViewer/Shaders/TriangleMesh.hlsl", L"VS_main", L"vs_6_0");
-  const auto pixelShader=
+  const ComPtr<IDxcBlob> vertexShader =
+      compileShader(L"../../../Assignments/A1SceneGraphViewer/Shaders/TriangleMesh.hlsl", L"VS_main", L"vs_6_0");
+  const ComPtr<IDxcBlob> pixelShader =
       compileShader(L"../../../Assignments/A1SceneGraphViewer/Shaders/TriangleMesh.hlsl", L"PS_main", L"ps_6_0");
 
   D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
@@ -136,9 +138,9 @@ struct ConstantBuffer
 void SceneGraphViewerApp::createSceneConstantBuffer()
 {
   const ConstantBuffer cb         = {};
-  const auto           frameCount = getDX12AppConfig().frameCount;
+  const gims::ui64     frameCount = getDX12AppConfig().frameCount;
   m_constantBuffers.resize(frameCount);
-  for (ui32 i = 0; i < frameCount; i++)
+  for (gims::ui32 i = 0; i < frameCount; i++)
   {
     m_constantBuffers[i] = ConstantBufferD3D12(cb, getDevice());
   }
@@ -146,8 +148,8 @@ void SceneGraphViewerApp::createSceneConstantBuffer()
 
 void SceneGraphViewerApp::updateSceneConstantBuffer()
 {
-  ConstantBuffer cb;
-  cb.projectionMatrix =
-      glm::perspectiveFovLH_ZO<f32>(glm::radians(45.0f), (f32)getWidth(), (f32)getHeight(), 1.0f / 256.0f, 256.0f);
+  ConstantBuffer cb = {};
+  cb.projectionMatrix = glm::perspectiveFovLH_ZO<gims::f32>(glm::radians(45.0f), (gims::f32)getWidth(),
+                                                            (gims::f32)getHeight(), 1.0f / 256.0f, 256.0f);
   m_constantBuffers[getFrameIndex()].upload(&cb);
 }

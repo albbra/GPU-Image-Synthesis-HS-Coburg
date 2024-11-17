@@ -1,27 +1,28 @@
+// AABB.cpp
+
 #include "AABB.hpp"
-namespace gims
-{
+
 AABB::AABB()
-    : m_lowerLeftBottom(std::numeric_limits<f32>::max())
-    , m_upperRightTop(-std::numeric_limits<f32>::max())
+    : m_lowerLeftBottom(std::numeric_limits<gims::f32>::max())
+    , m_upperRightTop(-std::numeric_limits<gims::f32>::max())
 {
 }
-AABB::AABB(f32v3 const* const positions, ui32 nPositions)
-    : m_lowerLeftBottom(std::numeric_limits<f32>::max())
-    , m_upperRightTop(-std::numeric_limits<f32>::max())
+AABB::AABB(gims::f32v3 const* const positions, gims::ui32 nPositions)
+    : m_lowerLeftBottom(std::numeric_limits<gims::f32>::max())
+    , m_upperRightTop(-std::numeric_limits<gims::f32>::max())
 
 {
-  for (ui32 i = 0; i < nPositions; i++)
+  for (gims::ui32 i = 0; i < nPositions; i++)
   {
     const auto& p     = positions[i];
     m_lowerLeftBottom = glm::min(m_lowerLeftBottom, p);
     m_upperRightTop   = glm::max(m_upperRightTop, p);
   }
 }
-f32m4 AABB::getNormalizationTransformation() const
+gims::f32m4 AABB::getNormalizationTransformation() const
 {
   // Assignment 2
-  return f32m4(1);
+  return gims::f32m4(1);
 }
 AABB AABB::getUnion(const AABB& other) const
 {
@@ -29,18 +30,17 @@ AABB AABB::getUnion(const AABB& other) const
   // Assignment 2
   return *this;
 }
-const f32v3& AABB::getLowerLeftBottom()
+const gims::f32v3& AABB::getLowerLeftBottom()
 {
   return m_lowerLeftBottom;
 }
-const f32v3& AABB::getUpperRightTop() const
+const gims::f32v3& AABB::getUpperRightTop() const
 {
   return m_upperRightTop;
 }
-AABB AABB::getTransformed(f32m4& transformation) const
+AABB AABB::getTransformed(gims::f32m4& transformation) const
 {
   (void)transformation;
   // Assignment 2
   return *this;
 }
-} // namespace gims

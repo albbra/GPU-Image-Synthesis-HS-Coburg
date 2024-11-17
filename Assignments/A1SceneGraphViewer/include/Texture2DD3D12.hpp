@@ -1,12 +1,12 @@
-#pragma once
+// Texture2DD3D12.hpp
+#ifndef TEXTURE_2DD3D12_CLASS
+#define TEXTURE_2DD3D12_CLASS
+
 #include <d3d12.h>
 #include <filesystem>
 #include <gimslib/types.hpp>
 #include <wrl.h>
-using Microsoft::WRL::ComPtr;
 
-namespace gims
-{
 /// <summary>
 /// A class that represents 2D textures. It supports the format RGBA8_UNORM only.
 /// </summary>
@@ -19,8 +19,8 @@ public:
   /// <param name="pathToFileName">Path to filename</param>
   /// <param name="device">Device on which the GPU buffers should be created.</param>
   /// <param name="commandQueue">Command queue used to copy the data from the GPU to the GPU.</param>
-  Texture2DD3D12(std::filesystem::path pathToFileName, const ComPtr<ID3D12Device>& device,
-                 const ComPtr<ID3D12CommandQueue>& commandQueue);
+  Texture2DD3D12(std::filesystem::path pathToFileName, const Microsoft::WRL::ComPtr<ID3D12Device>& device,
+                 const Microsoft::WRL::ComPtr<ID3D12CommandQueue>& commandQueue);
 
   /// <summary>
   /// Creates a texture from a pointer in memory.
@@ -30,8 +30,9 @@ public:
   /// <param name="height">Width in texels.</param>
   /// <param name="device">Device on which the GPU buffers should be created.</param>
   /// /// <param name="commandQueue">Command queue used to copy the data from the GPU to the GPU.</param>
-  Texture2DD3D12(ui8v4 const* const data, ui32 width, ui32 height, const ComPtr<ID3D12Device>& device,
-                 const ComPtr<ID3D12CommandQueue>& commandQueue);
+  Texture2DD3D12(gims::ui8v4 const* const data, gims::ui32 width, gims::ui32 height,
+                 const Microsoft::WRL::ComPtr<ID3D12Device>&       device,
+                 const Microsoft::WRL::ComPtr<ID3D12CommandQueue>& commandQueue);
 
   /// <summary>
   /// Adds the texture to a descriptor heap.
@@ -39,8 +40,9 @@ public:
   /// <param name="device"></param>
   /// <param name="descriptorHeap">The descriptor heap, to which this texture should be added.</param>
   /// <param name="descriptorIndex">The index within the descriptor heap.</param>
-  void addToDescriptorHeap(const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12DescriptorHeap>& descriptorHeap,
-                           i32 offsetInDescriptors) const;
+  void addToDescriptorHeap(const Microsoft::WRL::ComPtr<ID3D12Device>&         device,
+                           const Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>& descriptorHeap,
+                           gims::i32                                           offsetInDescriptors) const;
 
   Texture2DD3D12()                                           = default;
   Texture2DD3D12(const Texture2DD3D12& other)                = default;
@@ -52,6 +54,7 @@ private:
   /// <summary>
   /// The texture resource.
   /// </summary>
-  ComPtr<ID3D12Resource> m_textureResource;
+  Microsoft::WRL::ComPtr<ID3D12Resource> m_textureResource;
 };
-} // namespace gims
+
+#endif // TEXTURE_2DD3D12_CLASS

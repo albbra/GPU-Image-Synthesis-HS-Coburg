@@ -1,17 +1,17 @@
+// Texture2DD3D12.cpp
+
 #include "Texture2DD3D12.hpp"
 #include <d3dx12/d3dx12.h>
 #include <gimslib/contrib/stb/stb_image.h>
 #include <gimslib/d3d/UploadHelper.hpp>
 #include <gimslib/dbg/HrException.hpp>
 
-using namespace gims;
-namespace
+Microsoft::WRL::ComPtr<ID3D12Resource> static createTexture(void const* const data, gims::ui32 textureWidth,
+                                                     gims::ui32                                        textureHeight,
+                                                     const Microsoft::WRL::ComPtr<ID3D12Device>&       device,
+                                                     const Microsoft::WRL::ComPtr<ID3D12CommandQueue>& commandQueue)
 {
-
-ComPtr<ID3D12Resource> createTexture(void const* const data, ui32 textureWidth, ui32 textureHeight,
-                                     const ComPtr<ID3D12Device>& device, const ComPtr<ID3D12CommandQueue>& commandQueue)
-{
-  ComPtr<ID3D12Resource> textureResource;
+  Microsoft::WRL::ComPtr<ID3D12Resource> textureResource;
   (void)data;
   (void)textureWidth;
   (void)textureHeight;
@@ -20,19 +20,18 @@ ComPtr<ID3D12Resource> createTexture(void const* const data, ui32 textureWidth, 
   // Assignment 8
   return textureResource;
 }
-} // namespace
 
-namespace gims
+Texture2DD3D12::Texture2DD3D12(std::filesystem::path path, const Microsoft::WRL::ComPtr<ID3D12Device>& device,
+                               const Microsoft::WRL::ComPtr<ID3D12CommandQueue>& commandQueue)
 {
-Texture2DD3D12::Texture2DD3D12(std::filesystem::path path, const ComPtr<ID3D12Device>& device,
-                               const ComPtr<ID3D12CommandQueue>& commandQueue)
-{
-  const auto fileName     = path.generic_string();
-  const auto fileNameCStr = fileName.c_str();
-  i32        textureWidth, textureHeight, textureComp;
+  const auto fileName      = path.generic_string();
+  const auto fileNameCStr  = fileName.c_str();
+  gims::i32  textureWidth  = {0};
+  gims::i32  textureHeight = {0};
+  gims::i32  textureComp   = {0};
 
-  std::unique_ptr<ui8, void (*)(void*)> image(stbi_load(fileNameCStr, &textureWidth, &textureHeight, &textureComp, 4),
-                                              &stbi_image_free);
+  std::unique_ptr<gims::ui8, void (*)(void*)> image(
+      stbi_load(fileNameCStr, &textureWidth, &textureHeight, &textureComp, 4), &stbi_image_free);
   if (image.get() == nullptr)
   {
     throw std::exception("Error loading texture.");
@@ -40,19 +39,20 @@ Texture2DD3D12::Texture2DD3D12(std::filesystem::path path, const ComPtr<ID3D12De
 
   m_textureResource = createTexture(image.get(), textureWidth, textureHeight, device, commandQueue);
 }
-Texture2DD3D12::Texture2DD3D12(ui8v4 const* const data, ui32 width, ui32 height, const ComPtr<ID3D12Device>& device,
-                               const ComPtr<ID3D12CommandQueue>& commandQueue)
+Texture2DD3D12::Texture2DD3D12(gims::ui8v4 const* const data, gims::ui32 width, gims::ui32 height,
+                               const Microsoft::WRL::ComPtr<ID3D12Device>&       device,
+                               const Microsoft::WRL::ComPtr<ID3D12CommandQueue>& commandQueue)
 
 {
   m_textureResource = createTexture(data, width, height, device, commandQueue);
 }
 
-void Texture2DD3D12::addToDescriptorHeap(const ComPtr<ID3D12Device>&         device,
-                                         const ComPtr<ID3D12DescriptorHeap>& descriptorHeap, i32 descriptorIndex) const
+void Texture2DD3D12::addToDescriptorHeap(const Microsoft::WRL::ComPtr<ID3D12Device>&         device,
+                                         const Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>& descriptorHeap,
+                                         gims::i32                                           descriptorIndex) const
 {
   (void)device;
   (void)descriptorHeap;
   (void)descriptorIndex;
   // Assignment 8
 }
-} // namespace gims

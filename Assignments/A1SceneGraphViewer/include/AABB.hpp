@@ -1,7 +1,9 @@
-#pragma once
+// AABB.hpp
+#ifndef AXIS_ALIGNED_BOUNDING_BOX_CLASS
+#define AXIS_ALIGNED_BOUNDING_BOX_CLASS
+
 #include <gimslib/types.hpp>
-namespace gims
-{
+
 /// <summary>
 /// This class implmements an Axis-Aligned Bounding-Box (AABB).
 /// </summary>
@@ -22,13 +24,13 @@ public:
   /// </summary>
   /// <param name="positions">Array of 3D positions.</param>
   /// <param name="nPositions">Number of positions.</param>
-  AABB(f32v3 const* const positions, ui32 nPositions);
+  AABB(gims::f32v3 const* const positions, gims::ui32 nPositions);
 
   /// <summary>
   /// Returns the affine matrix, that maps the bounding box to [-0.5...0.5]^3.
   /// </summary>
   /// <returns>A 4x4 affine matrix.</returns>
-  f32m4 getNormalizationTransformation() const;
+  gims::f32m4 getNormalizationTransformation() const;
 
   /// <summary>
   /// Computes and returns the union of this bounding box with the other bounding box.
@@ -41,14 +43,13 @@ public:
   /// Returns the lower, left, bottom corner of the bounding box.
   /// </summary>
   /// <returns></returns>
-  const f32v3& getLowerLeftBottom();
+  const gims::f32v3& getLowerLeftBottom();
 
   /// <summary>
   /// Returns the upper, right, top corner of the bounding box.
   /// </summary>
   /// <returns></returns>
-
-  const f32v3& getUpperRightTop() const;
+  const gims::f32v3& getUpperRightTop() const;
 
   /// <summary>
   /// Returns a transformed copy of this bounding box.
@@ -56,12 +57,13 @@ public:
   /// </summary>
   /// <param name="transformation">A matrix that transforms points.</param>
   /// <returns>The transformed matrix.</returns>
-  AABB getTransformed(f32m4& transformation) const;
+  AABB getTransformed(gims::f32m4& transformation) const;
 
 private:
   //! The lower left bottom corner of the AABB.
-  f32v3 m_lowerLeftBottom;
+  gims::f32v3 m_lowerLeftBottom;
   //! The upper right top of the AABB.
-  f32v3 m_upperRightTop;
+  gims::f32v3 m_upperRightTop;
 };
-} // namespace gims
+
+#endif // AXIS_ALIGNED_BOUNDING_BOX_CLASS

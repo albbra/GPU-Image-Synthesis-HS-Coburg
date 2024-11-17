@@ -1,9 +1,9 @@
+// main.cpp
+
 #include "SceneGraphViewerApp.hpp"
 #include <gimslib/d3d/DX12Util.hpp>
 #include <gimslib/types.hpp>
 #include <iostream>
-
-using namespace gims;
 
 int main(int /* argc*/, char /* **argv */)
 {

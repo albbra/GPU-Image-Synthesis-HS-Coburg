@@ -1,3 +1,12 @@
+// TriangleMesh.hlsl
+
+struct VertexInput
+{
+    float3 position : POSITION;
+    float3 normal : NORMAL;
+    float2 texCoord : TEXCOORD;
+};
+
 struct VertexShaderOutput
 {
     float4 clipSpacePosition : SV_POSITION;
@@ -40,15 +49,15 @@ Texture2D<float4> g_textureNormal : register(t4);
 
 SamplerState g_sampler : register(s0);
 
-VertexShaderOutput VS_main(float3 position : POSITION, float3 normal : NORMAL, float2 texCoord : TEXCOORD)
+VertexShaderOutput VS_main(VertexInput input)
 {
     VertexShaderOutput output;
 
-    float4 p4 = mul(modelViewMatrix, float4(position, 1.0f));
+    float4 p4 = mul(modelViewMatrix, float4(input.position, 1.0f));
     output.viewSpacePosition = p4.xyz;
-    output.viewSpaceNormal = mul(modelViewMatrix, float4(normal, 0.0f)).xyz;
+    output.viewSpaceNormal = mul(modelViewMatrix, float4(input.normal, 0.0f)).xyz;
     output.clipSpacePosition = mul(projectionMatrix, p4);
-    output.texCoord = texCoord;
+    output.texCoord = input.texCoord;
 
     return output;
 }

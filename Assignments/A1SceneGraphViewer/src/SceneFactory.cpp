@@ -1,3 +1,5 @@
+// SceneFactory.cpp
+
 #include "SceneFactory.hpp"
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
@@ -6,28 +8,25 @@
 #include <gimslib/d3d/UploadHelper.hpp>
 #include <gimslib/dbg/HrException.hpp>
 #include <iostream>
-using namespace gims;
 
-namespace
-{
 /// <summary>
 /// Converts the index buffer required for D3D12 renndering from an aiMesh.
 /// </summary>
 /// <param name="mesh">The ai mesh containing an index buffer.</param>
 /// <returns></returns>
-std::vector<ui32v3> getTriangleIndicesFromAiMesh(aiMesh const* const mesh)
+std::vector<gims::ui32v3> static getTriangleIndicesFromAiMesh(aiMesh const* const mesh)
 {
-  std::vector<ui32v3> result;
+  std::vector<gims::ui32v3> result;
   // Assignment 3
   (void)mesh;
   return result;
 }
 
-void addTextureToDescriptorHeap(const ComPtr<ID3D12Device>& device, aiTextureType aiTextureTypeValue,
-                                i32 offsetInDescriptors, aiMaterial const* const inputMaterial,
-                                const std::vector<Texture2DD3D12>& m_textures, Scene::Material& material,
-                                std::unordered_map<std::filesystem::path, ui32> textureFileNameToTextureIndex,
-                                ui32                                            defaultTextureIndex)
+void static addTextureToDescriptorHeap(const Microsoft::WRL::ComPtr<ID3D12Device>& device, aiTextureType aiTextureTypeValue,
+                                gims::i32 offsetInDescriptors, aiMaterial const* const inputMaterial,
+                                const std::vector<Texture2DD3D12>& m_textures, Material& material,
+                                std::unordered_map<std::filesystem::path, gims::ui32> textureFileNameToTextureIndex,
+                                gims::ui32                                            defaultTextureIndex)
 {
   if (inputMaterial->GetTextureCount(aiTextureTypeValue) == 0)
   {
@@ -42,16 +41,16 @@ void addTextureToDescriptorHeap(const ComPtr<ID3D12Device>& device, aiTextureTyp
   }
 }
 
-std::unordered_map<std::filesystem::path, ui32> textureFilenameToIndex(aiScene const* const inputScene)
+std::unordered_map<std::filesystem::path, gims::ui32> static textureFilenameToIndex(aiScene const* const inputScene)
 {
-  std::unordered_map<std::filesystem::path, ui32> textureFileNameToTextureIndex;
+  std::unordered_map<std::filesystem::path, gims::ui32> textureFileNameToTextureIndex;
 
-  ui32 textureIdx = 3;
-  for (ui32 mIdx = 0; mIdx < inputScene->mNumMaterials; mIdx++)
+  gims::ui32 textureIdx = 3;
+  for (gims::ui32 mIdx = 0; mIdx < inputScene->mNumMaterials; mIdx++)
   {
-    for (ui32 textureType = aiTextureType_NONE; textureType < aiTextureType_UNKNOWN; textureType++)
+    for (gims::ui32 textureType = aiTextureType_NONE; textureType < aiTextureType_UNKNOWN; textureType++)
     {
-      for (ui32 i = 0; i < inputScene->mMaterials[mIdx]->GetTextureCount((aiTextureType)textureType); i++)
+      for (gims::ui32 i = 0; i < inputScene->mMaterials[mIdx]->GetTextureCount((aiTextureType)textureType); i++)
       {
         aiString path;
         inputScene->mMaterials[mIdx]->GetTexture((aiTextureType)textureType, i, &path);
@@ -60,7 +59,7 @@ std::unordered_map<std::filesystem::path, ui32> textureFilenameToIndex(aiScene c
         const auto textureIter     = textureFileNameToTextureIndex.find(texturePathCstr);
         if (textureIter == textureFileNameToTextureIndex.end())
         {
-          textureFileNameToTextureIndex.emplace(texturePathCstr, static_cast<ui32>(textureIdx));
+          textureFileNameToTextureIndex.emplace(texturePathCstr, static_cast<gims::ui32>(textureIdx));
           textureIdx++;
         }
       }
@@ -80,26 +79,22 @@ std::unordered_map<std::filesystem::path, ui32> textureFilenameToIndex(aiScene c
 /// <param name="idx"></param>
 /// <param name="material">The material from which we wish to extract the color.</param>
 /// <returns>Color or 0 vector if no color exists.</returns>
-f32v4 getColor(char const* const pKey, unsigned int type, unsigned int idx, aiMaterial const* const material)
+gims::f32v4 static getColor(char const* const pKey, unsigned int type, unsigned int idx, aiMaterial const* const material)
 {
   aiColor3D color;
   if (material->Get(pKey, type, idx, color) == aiReturn_SUCCESS)
   {
-    return f32v4(color.r, color.g, color.b, 0.0f);
+    return gims::f32v4(color.r, color.g, color.b, 0.0f);
   }
   else
   {
-    return f32v4(0.0f);
+    return gims::f32v4(0.0f);
   }
 }
 
-} // namespace
-
-namespace gims
-{
 Scene SceneGraphFactory::createFromAssImpScene(const std::filesystem::path       pathToScene,
-                                               const ComPtr<ID3D12Device>&       device,
-                                               const ComPtr<ID3D12CommandQueue>& commandQueue)
+                                               const Microsoft::WRL::ComPtr<ID3D12Device>&       device,
+                                               const Microsoft::WRL::ComPtr<ID3D12CommandQueue>& commandQueue)
 {
   Scene outputScene;
 
@@ -127,15 +122,15 @@ Scene SceneGraphFactory::createFromAssImpScene(const std::filesystem::path      
 
   createNodes(inputScene, outputScene, inputScene->mRootNode);
 
-  computeSceneAABB(outputScene, outputScene.m_aabb, 0, glm::identity<f32m4>());
+  computeSceneAABB(outputScene, outputScene.m_aabb, 0, glm::identity<gims::f32m4>());
   createTextures(textureFileNameToTextureIndex, absolutePath.parent_path(), device, commandQueue, outputScene);
   createMaterials(inputScene, textureFileNameToTextureIndex, device, outputScene);
 
   return outputScene;
 }
 
-void SceneGraphFactory::createMeshes(aiScene const* const inputScene, const ComPtr<ID3D12Device>& device,
-                                     const ComPtr<ID3D12CommandQueue>& commandQueue, Scene& outputScene)
+void SceneGraphFactory::createMeshes(aiScene const* const inputScene, const Microsoft::WRL::ComPtr<ID3D12Device>& device,
+                                     const Microsoft::WRL::ComPtr<ID3D12CommandQueue>& commandQueue, Scene& outputScene)
 {
   // Assignment 3
   (void)inputScene;
@@ -144,7 +139,8 @@ void SceneGraphFactory::createMeshes(aiScene const* const inputScene, const ComP
   (void)outputScene;
 }
 
-ui32 SceneGraphFactory::createNodes(aiScene const* const inputScene, Scene& outputScene, aiNode const* const inputNode)
+gims::ui32 SceneGraphFactory::createNodes(aiScene const* const inputScene, Scene& outputScene,
+                                          aiNode const* const inputNode)
 {
   (void)inputScene;
   (void)outputScene;
@@ -153,7 +149,7 @@ ui32 SceneGraphFactory::createNodes(aiScene const* const inputScene, Scene& outp
   return 0;
 }
 
-void SceneGraphFactory::computeSceneAABB(Scene& scene, AABB& aabb, ui32 nodeIdx, f32m4 transformation)
+void SceneGraphFactory::computeSceneAABB(Scene& scene, AABB& aabb, gims::ui32 nodeIdx, gims::f32m4 transformation)
 {
   (void)transformation;
   (void)scene;
@@ -166,9 +162,9 @@ void SceneGraphFactory::computeSceneAABB(Scene& scene, AABB& aabb, ui32 nodeIdx,
 }
 
 void SceneGraphFactory::createTextures(
-    const std::unordered_map<std::filesystem::path, ui32>& textureFileNameToTextureIndex,
-    std::filesystem::path parentPath, const ComPtr<ID3D12Device>& device,
-    const ComPtr<ID3D12CommandQueue>& commandQueue, Scene& outputScene)
+    const std::unordered_map<std::filesystem::path, gims::ui32>& textureFileNameToTextureIndex,
+    std::filesystem::path parentPath, const Microsoft::WRL::ComPtr<ID3D12Device>& device,
+    const Microsoft::WRL::ComPtr<ID3D12CommandQueue>& commandQueue, Scene& outputScene)
 {
   (void)textureFileNameToTextureIndex;
   (void)parentPath;
@@ -178,9 +174,10 @@ void SceneGraphFactory::createTextures(
   // Assignment 9
 }
 
-void SceneGraphFactory::createMaterials(aiScene const* const                            inputScene,
-                                        std::unordered_map<std::filesystem::path, ui32> textureFileNameToTextureIndex,
-                                        const ComPtr<ID3D12Device>& device, Scene& outputScene)
+void SceneGraphFactory::createMaterials(
+    aiScene const* const                                  inputScene,
+    std::unordered_map<std::filesystem::path, gims::ui32> textureFileNameToTextureIndex,
+    const Microsoft::WRL::ComPtr<ID3D12Device>& device, Scene& outputScene)
 {
   (void)inputScene;
   (void)textureFileNameToTextureIndex;
@@ -190,5 +187,3 @@ void SceneGraphFactory::createMaterials(aiScene const* const                    
   // Assignment 9
   // Assignment 10
 }
-
-} // namespace gims

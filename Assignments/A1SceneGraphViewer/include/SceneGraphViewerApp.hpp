@@ -1,9 +1,12 @@
-#pragma once
+// SceneGraphViewerApp.hpp
+#ifndef SCENE_GRAPH_VIEWER_APP_CLASS
+#define SCENE_GRAPH_VIEWER_APP_CLASS
+
 #include "Scene.hpp"
+#include "UiDataStruct.h"
 #include <gimslib/d3d/DX12App.hpp>
 #include <gimslib/types.hpp>
 #include <gimslib/ui/ExaminerController.hpp>
-using namespace gims;
 
 /// <summary>
 /// An app for viewing an Asset Importer Scene Graph.
@@ -15,7 +18,7 @@ public:
   /// Creates the SceneGraphViewerApp and loads a scene.
   /// </summary>
   /// <param name="config">Configuration.</param>
-  SceneGraphViewerApp(const DX12AppConfig config, const std::filesystem::path pathToScene);
+  SceneGraphViewerApp(const gims::DX12AppConfig config, const std::filesystem::path pathToScene);
 
   ~SceneGraphViewerApp() = default;
 
@@ -50,15 +53,12 @@ private:
 
   void updateSceneConstantBuffer();
 
-  struct UiData
-  {
-    f32v3 m_backgroundColor = f32v3(0.25f, 0.25f, 0.25f);
-  };
-
   ComPtr<ID3D12PipelineState>      m_pipelineState;
   ComPtr<ID3D12RootSignature>      m_rootSignature;
   std::vector<ConstantBufferD3D12> m_constantBuffers;
-  gims::ExaminerController         m_examinerController;  
+  gims::ExaminerController         m_examinerController;
   Scene                            m_scene;
   UiData                           m_uiData;
 };
+
+#endif // SCENE_GRAPH_VIEWER_APP_CLASS
