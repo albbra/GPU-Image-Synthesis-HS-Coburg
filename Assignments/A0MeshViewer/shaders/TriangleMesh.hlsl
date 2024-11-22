@@ -52,7 +52,7 @@ float4 PS_main(VertexShaderOutput input)
     bool twoSidedLighting = flags & 0x1;
     bool useTexture = flags & 0x2;
 
-    float3 lightDirection = float3(1.0f, 0.0f, 1.0f);
+    float3 lightDirection = float3(1.0f, 0.0f, -1.0f);
 
     float3 l = normalize(lightDirection);
     float3 n = normalize(input.viewSpaceNormal);

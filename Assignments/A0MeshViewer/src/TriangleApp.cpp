@@ -153,15 +153,17 @@ void MeshViewer::createPipeline()
   throwIfFailed(getDevice()->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineStateWithoutCulling)));
 
   // Enable back-face culling for solid rendering
-  psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_FRONT;
+  psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
   throwIfFailed(getDevice()->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
 
   // Set properties for wireframe rendering
-  psoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
+  psoDesc.RasterizerState.FillMode              = D3D12_FILL_MODE_WIREFRAME;
+  psoDesc.RasterizerState.FrontCounterClockwise = FALSE; // FALSE for clockwise in LH system
+  psoDesc.RasterizerState.DepthClipEnable       = TRUE;  // Ensure proper depth clipping
 
   // Enable depth bias to prevent Z-fighting with solid geometry
-  psoDesc.RasterizerState.DepthBias            = 100;  
-  psoDesc.RasterizerState.DepthBiasClamp       = 0.0f; 
+  psoDesc.RasterizerState.DepthBias            = 1;
+  psoDesc.RasterizerState.DepthBiasClamp       = 0.0f;
   psoDesc.RasterizerState.SlopeScaledDepthBias = -1.0f;
 
   psoDesc.DepthStencilState.DepthWriteMask       = D3D12_DEPTH_WRITE_MASK_ZERO; // Disable depth writes for overlay
@@ -312,7 +314,7 @@ void MeshViewer::createConstantBuffer()
   f32v3 cameraPosition = {0.0f, 0.0f, 5.0f};
   f32v3 centerPosition = {0.0f, 0.0f, 0.0f};
   f32v3 upPosition     = {0.0f, 1.0f, 0.0f};
-  m_view               = glm::lookAt(glm::vec3(cameraPosition), glm::vec3(centerPosition), glm::vec3(upPosition));
+  m_view               = glm::lookAtLH(glm::vec3(cameraPosition), glm::vec3(centerPosition), glm::vec3(upPosition));
 
   m_projection = getScaledProjectionMatrix();
 
@@ -516,6 +518,6 @@ gims::f32m4 MeshViewer::getScaledProjectionMatrix()
   f32 constexpr fieldOfView = glm::radians(45.0f);
   f32 const nearPlane       = 0.2f;
   f32 const farPlane        = 10.0f;
-  return glm::perspectiveFovRH_NO<f32>(fieldOfView, static_cast<f32>(getWidth()), static_cast<f32>(getHeight()),
+  return glm::perspectiveFovLH_ZO<f32>(fieldOfView, static_cast<f32>(getWidth()), static_cast<f32>(getHeight()),
                                        nearPlane, farPlane);
 }
