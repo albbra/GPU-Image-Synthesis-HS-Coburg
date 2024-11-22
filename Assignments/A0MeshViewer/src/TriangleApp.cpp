@@ -157,7 +157,13 @@ void MeshViewer::createPipeline()
   throwIfFailed(getDevice()->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
 
   // Set properties for wireframe rendering
-  psoDesc.RasterizerState.FillMode               = D3D12_FILL_MODE_WIREFRAME;
+  psoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
+
+  // Enable depth bias to prevent Z-fighting with solid geometry
+  psoDesc.RasterizerState.DepthBias            = 100;  
+  psoDesc.RasterizerState.DepthBiasClamp       = 0.0f; 
+  psoDesc.RasterizerState.SlopeScaledDepthBias = -1.0f;
+
   psoDesc.DepthStencilState.DepthWriteMask       = D3D12_DEPTH_WRITE_MASK_ZERO; // Disable depth writes for overlay
   psoDesc.BlendState.RenderTarget[0].BlendEnable = TRUE;
   psoDesc.BlendState.RenderTarget[0].SrcBlend    = D3D12_BLEND_SRC_ALPHA;
