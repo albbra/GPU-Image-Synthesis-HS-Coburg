@@ -308,11 +308,7 @@ void MeshViewer::createConstantBuffer()
   f32v3 upPosition     = {0.0f, 1.0f, 0.0f};
   m_view               = glm::lookAt(glm::vec3(cameraPosition), glm::vec3(centerPosition), glm::vec3(upPosition));
 
-  f32 constexpr fieldOfView = glm::radians(45.0f);
-  f32 aspectRatio           = static_cast<f32>(500) / 500;
-  f32 nearPlane             = 0.2f;
-  f32 farPlane              = 10.0f;
-  m_projection              = glm::perspective(fieldOfView, aspectRatio, nearPlane, farPlane);
+  m_projection = getScaledProjectionMatrix();
 
   m_perFrameData.mvp = m_projection * m_view * glm::mat4(1.0f);
   m_perFrameData.mv  = m_view * glm::mat4(1.0f);
@@ -370,7 +366,7 @@ void MeshViewer::createConstantBuffer()
 
 void MeshViewer::setStartUIData()
 {
-  //Setting start values not in the Header
+  // Setting start values not in the Header
   m_uiData.backgroundColor  = gims::f32v3(0.25f, 0.25f, 0.25f);
   m_uiData.backFaceCulling  = false;
   m_uiData.overlayWireframe = false;
@@ -465,6 +461,8 @@ void MeshViewer::onDraw()
 
 void MeshViewer::setPerFrameData(gims::f32m4& newTransformationMatrix)
 {
+  m_projection = getScaledProjectionMatrix();
+
   m_perFrameData.mvp                        = m_projection * m_view * newTransformationMatrix;
   m_perFrameData.mv                         = m_view * newTransformationMatrix;
   m_perFrameData.specularColor_and_Exponent = {m_uiData.specularColor, m_uiData.exponent};
@@ -472,7 +470,7 @@ void MeshViewer::setPerFrameData(gims::f32m4& newTransformationMatrix)
   m_perFrameData.diffuseColor               = {m_uiData.diffuseColor, 1.0f};
   m_perFrameData.wireFrameColor             = {m_uiData.wireframeColor, 1.0f};
 
-  //Clear bit and set 1 if true
+  // Clear bit and set 1 if true
   m_perFrameData.flags = (m_perFrameData.flags & ~0x1) | (m_uiData.twoSidedLighting ? 0x1 : 0);
   m_perFrameData.flags = (m_perFrameData.flags & ~0x2) | (m_uiData.useTexture ? 0x2 : 0);
 }
@@ -505,4 +503,13 @@ void MeshViewer::onDrawUI()
   ImGui::SliderFloat("Exponent", &m_uiData.exponent, 0.0f, 1024.0f);
   ImGui::Text("Frametime: %f", 1.0f / ImGui::GetIO().Framerate * 1000.0f);
   ImGui::End();
+}
+
+gims::f32m4 MeshViewer::getScaledProjectionMatrix()
+{
+  f32 constexpr fieldOfView = glm::radians(45.0f);
+  f32 const nearPlane       = 0.2f;
+  f32 const farPlane        = 10.0f;
+  return glm::perspectiveFovRH_NO<f32>(fieldOfView, static_cast<f32>(getWidth()), static_cast<f32>(getHeight()),
+                                       nearPlane, farPlane);
 }

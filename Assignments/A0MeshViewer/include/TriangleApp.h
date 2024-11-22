@@ -48,14 +48,15 @@ private:
   gims::f32m4 m_view;
   gims::f32m4 m_projection;
 
-  void createRootSignature();
-  void createPipeline();
-  void loadMesh();
-  void loadTexture();
-  void setStartUIData();
-  void setPerFrameData(gims::f32m4& newTransformationMatrix);
-  void createConstantBuffer();
-  void updateConstantBuffer();
+  void        createRootSignature();
+  void        createPipeline();
+  void        loadMesh();
+  void        loadTexture();
+  void        setStartUIData();
+  void        setPerFrameData(gims::f32m4& newTransformationMatrix);
+  void        createConstantBuffer();
+  void        updateConstantBuffer();
+  gims::f32m4 getScaledProjectionMatrix();
 };
 
 #endif // TRIANGLE_APP_HEADER
