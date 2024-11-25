@@ -82,7 +82,7 @@ void SceneGraphViewerApp::createRootSignature()
   rootParameters[2].InitAsConstantBufferView(2); // Material (b2)
 
   // Descriptor table for the texture SRVs (t0-t4)
-  CD3DX12_DESCRIPTOR_RANGE srvRange;
+  CD3DX12_DESCRIPTOR_RANGE srvRange = {};
   srvRange.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 5, 0); // 5 textures starting at t0
   rootParameters[3].InitAsDescriptorTable(1, &srvRange);
 
@@ -94,7 +94,7 @@ void SceneGraphViewerApp::createRootSignature()
   samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
 
   // Build the root signature description
-  CD3DX12_ROOT_SIGNATURE_DESC descRootSignature;
+  CD3DX12_ROOT_SIGNATURE_DESC descRootSignature = {};
   descRootSignature.Init(_countof(rootParameters),                                    // Number of root parameters
                          rootParameters,                                              // Array of root parameters
                          1,                                                           // Number of static samplers
@@ -164,17 +164,15 @@ void SceneGraphViewerApp::createPipeline()
 void SceneGraphViewerApp::drawScene(const ComPtr<ID3D12GraphicsCommandList>& cmdLst)
 {
   updateSceneConstantBuffer();
-  // Assigment 2: Uncomment after successfull implementation.
-  // const auto cb                   = m_constantBuffers[getFrameIndex()].getResource()->GetGPUVirtualAddress();
+  const auto cb           = m_constantBuffers[getFrameIndex()].getResource()->GetGPUVirtualAddress();
   const auto cameraMatrix = m_examinerController.getTransformationMatrix();
 
   // Assignment 6
 
   cmdLst->SetPipelineState(m_pipelineState.Get());
 
-  // Assigment 2: Uncomment after successfull implementation.
-  // cmdLst->SetGraphicsRootSignature(m_rootSignature.Get());
-  // cmdLst->SetGraphicsRootConstantBufferView(0, cb);
+  cmdLst->SetGraphicsRootSignature(m_rootSignature.Get());
+  cmdLst->SetGraphicsRootConstantBufferView(0, cb);
 
   m_scene.addToCommandList(cmdLst, cameraMatrix, 1, 2, 3);
 }

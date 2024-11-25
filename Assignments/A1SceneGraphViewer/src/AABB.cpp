@@ -21,34 +21,26 @@ AABB::AABB(gims::f32v3 const* const positions, gims::ui32 nPositions)
   }
 }
 
+AABB::AABB(const gims::f32v3& lowerLeft, const gims::f32v3& upperRight)
+    : m_lowerLeftBottom(lowerLeft)
+    , m_upperRightTop(upperRight)
+{
+}
+
 gims::f32m4 AABB::getNormalizationTransformation() const
 {
-    // Compute the scale and translation needed to normalize the AABB
-    gims::f32v3 size = m_upperRightTop - m_lowerLeftBottom;
-    gims::f32v3 center = (m_upperRightTop + m_lowerLeftBottom) * 0.5f;
+  gims::f32v3 size = m_upperRightTop - m_lowerLeftBottom;
+  size             = glm::max(size, gims::f32v3(1e-6f)); // Avoid division by zero
 
-    gims::f32v3 scale = gims::f32v3(1.0f) / size;
+  gims::f32v3 center = (m_upperRightTop + m_lowerLeftBottom) * 0.5f;
+  gims::f32v3 scale  = gims::f32v3(1.0f) / size;
 
-    gims::f32m4 normalizationMatrix(1.0f);
-    normalizationMatrix = glm::scale(normalizationMatrix, scale);
-    normalizationMatrix = glm::translate(normalizationMatrix, -center);
-
-    return normalizationMatrix;
+  return glm::translate(glm::scale(gims::f32m4(1.0f), scale), -center);
 }
 
 AABB AABB::getUnion(const AABB& other) const
 {
-  // Compute the new lower-left corner by taking the minimum of the two lower-left corners
-  gims::f32v3 newLowerLeft = glm::min(m_lowerLeftBottom, other.m_lowerLeftBottom);
-
-  // Compute the new upper-right corner by taking the maximum of the two upper-right corners
-  gims::f32v3 newUpperRight = glm::max(m_upperRightTop, other.m_upperRightTop);
-
-  // Create an array with the two points: lower-left and upper-right corners
-  gims::f32v3 unionPoints[2] = {newLowerLeft, newUpperRight};
-
-  // Return a new AABB created from these points
-  return AABB(unionPoints, 2); // Passing the array and number of points
+  return AABB(glm::min(m_lowerLeftBottom, other.m_lowerLeftBottom), glm::max(m_upperRightTop, other.m_upperRightTop));
 }
 
 const gims::f32v3& AABB::getLowerLeftBottom()
@@ -63,13 +55,27 @@ const gims::f32v3& AABB::getUpperRightTop() const
 
 AABB AABB::getTransformed(gims::f32m4& transformation) const
 {
-    // Transform the lower-left corner and upper-right corner of the bounding box
-    gims::f32v3 transformedLowerLeft = transformation * gims::f32v4(m_lowerLeftBottom, 1.0f);
-    gims::f32v3 transformedUpperRight = transformation * gims::f32v4(m_upperRightTop, 1.0f);
+  // Define all 8 corners of the bounding box
+  const gims::f32v3 corners[8] = {m_lowerLeftBottom,
+                                  {m_upperRightTop.x, m_lowerLeftBottom.y, m_lowerLeftBottom.z},
+                                  {m_lowerLeftBottom.x, m_upperRightTop.y, m_lowerLeftBottom.z},
+                                  {m_lowerLeftBottom.x, m_lowerLeftBottom.y, m_upperRightTop.z},
+                                  {m_upperRightTop.x, m_upperRightTop.y, m_lowerLeftBottom.z},
+                                  {m_upperRightTop.x, m_lowerLeftBottom.y, m_upperRightTop.z},
+                                  {m_lowerLeftBottom.x, m_upperRightTop.y, m_upperRightTop.z},
+                                  m_upperRightTop};
 
-    // Create an array with the two transformed points: lower-left and upper-right corners
-    gims::f32v3 transformedPoints[2] = {transformedLowerLeft, transformedUpperRight};
+  // Initialize transformed bounds
+  gims::f32v3 transformedLowerLeft(std::numeric_limits<gims::f32>::max());
+  gims::f32v3 transformedUpperRight(-std::numeric_limits<gims::f32>::max());
 
-    // Return a new AABB created from the transformed corners
-    return AABB(transformedPoints, 2); // Pass the transformed points to the constructor
+  // Transform each corner and update bounds
+  for (const gims::f32v3& corner : corners)
+  {
+    gims::f32v3 transformedCorner = gims::f32v3(transformation * gims::f32v4(corner, 1.0f));
+    transformedLowerLeft          = glm::min(transformedLowerLeft, transformedCorner);
+    transformedUpperRight         = glm::max(transformedUpperRight, transformedCorner);
+  }
+
+  return AABB(transformedLowerLeft, transformedUpperRight);
 }

@@ -27,6 +27,13 @@ public:
   AABB(gims::f32v3 const* const positions, gims::ui32 nPositions);
 
   /// <summary>
+  /// Creates a bounding box from the provided 3D positions.
+  /// </summary>
+  /// <param name="lowerLeft">3D position</param>
+  /// <param name="upperRight">3D position</param>
+  AABB(const gims::f32v3& lowerLeft, const gims::f32v3& upperRight);
+
+  /// <summary>
   /// Returns the affine matrix, that maps the bounding box to [-0.5...0.5]^3.
   /// </summary>
   /// <returns>A 4x4 affine matrix.</returns>
