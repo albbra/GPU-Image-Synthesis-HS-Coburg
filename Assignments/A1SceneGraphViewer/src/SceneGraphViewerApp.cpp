@@ -73,7 +73,60 @@ void SceneGraphViewerApp::onDrawUI()
 
 void SceneGraphViewerApp::createRootSignature()
 {
-  // Assignment 1
+  // Define root parameters for each of the constant buffers and descriptor table
+  CD3DX12_ROOT_PARAMETER rootParameters[4] = {};
+
+  // Initialize as constant buffer views (cbv) for b0, b1, and b2
+  rootParameters[0].InitAsConstantBufferView(0); // PerFrameConstants (b0)
+  rootParameters[1].InitAsConstantBufferView(1); // PerMeshConstants (b1)
+  rootParameters[2].InitAsConstantBufferView(2); // Material (b2)
+
+  // Descriptor table for the texture SRVs (t0-t4)
+  CD3DX12_DESCRIPTOR_RANGE srvRange;
+  srvRange.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 5, 0); // 5 textures starting at t0
+  rootParameters[3].InitAsDescriptorTable(1, &srvRange);
+
+  // Initialize the sampler (s0)
+  CD3DX12_STATIC_SAMPLER_DESC samplerDesc(0);
+  samplerDesc.Filter   = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+  samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+  samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+  samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+
+  // Build the root signature description
+  CD3DX12_ROOT_SIGNATURE_DESC descRootSignature;
+  descRootSignature.Init(_countof(rootParameters),                                    // Number of root parameters
+                         rootParameters,                                              // Array of root parameters
+                         1,                                                           // Number of static samplers
+                         &samplerDesc,                                                // Pointer to the static sampler
+                         D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT // Flags
+  );
+
+  // Serialize and create the root signature
+  ComPtr<ID3DBlob> rootBlob, errorBlob;
+  HRESULT hr = D3D12SerializeRootSignature(&descRootSignature, D3D_ROOT_SIGNATURE_VERSION_1, &rootBlob, &errorBlob);
+
+  if (FAILED(hr))
+  {
+    // Handle serialization errors (debug messages or logging)
+    if (errorBlob)
+    {
+      OutputDebugStringA(static_cast<char*>(errorBlob->GetBufferPointer()));
+    }
+    throw std::runtime_error("Failed to serialize root signature.");
+  }
+
+  // Create the root signature on the device
+  hr = getDevice()->CreateRootSignature(0,                             // Node mask
+                                        rootBlob->GetBufferPointer(),  // Root signature blob
+                                        rootBlob->GetBufferSize(),     // Blob size
+                                        IID_PPV_ARGS(&m_rootSignature) // Output root signature
+  );
+
+  if (FAILED(hr))
+  {
+    throw std::runtime_error("Failed to create root signature.");
+  }
 }
 
 void SceneGraphViewerApp::createPipeline()
@@ -148,7 +201,7 @@ void SceneGraphViewerApp::createSceneConstantBuffer()
 
 void SceneGraphViewerApp::updateSceneConstantBuffer()
 {
-  ConstantBuffer cb = {};
+  ConstantBuffer cb   = {};
   cb.projectionMatrix = glm::perspectiveFovLH_ZO<gims::f32>(glm::radians(45.0f), (gims::f32)getWidth(),
                                                             (gims::f32)getHeight(), 1.0f / 256.0f, 256.0f);
   m_constantBuffers[getFrameIndex()].upload(&cb);
