@@ -146,11 +146,62 @@ void SceneGraphFactory::createMeshes(aiScene const* const                       
                                      const Microsoft::WRL::ComPtr<ID3D12Device>&       device,
                                      const Microsoft::WRL::ComPtr<ID3D12CommandQueue>& commandQueue, Scene& outputScene)
 {
-  // Assignment 3
-  (void)inputScene;
-  (void)device;
-  (void)commandQueue;
-  (void)outputScene;
+  if (!inputScene || !device || !commandQueue)
+  {
+    throw std::invalid_argument("Invalid arguments to createMeshes.");
+  }
+
+  // Iterate through all meshes in the scene
+  for (unsigned int meshIdx = 0; meshIdx < inputScene->mNumMeshes; ++meshIdx)
+  {
+    aiMesh* mesh = inputScene->mMeshes[meshIdx];
+
+    if (!mesh || mesh->mPrimitiveTypes != aiPrimitiveType_TRIANGLE)
+    {
+      continue; // Skip non-triangular meshes
+    }
+
+    // Extract vertex data
+    std::vector<gims::f32v3> positions(mesh->mNumVertices);
+    std::vector<gims::f32v3> normals(mesh->mNumVertices);
+    std::vector<gims::f32v3> texCoords(mesh->mNumVertices, gims::f32v3(0.0f)); // Default to 0 if no UVs
+
+    for (unsigned int i = 0; i < mesh->mNumVertices; ++i)
+    {
+      positions[i] = gims::f32v3(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z);
+
+      if (mesh->HasNormals())
+      {
+        normals[i] = gims::f32v3(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z);
+      }
+      else
+      {
+        normals[i] = gims::f32v3(0.0f, 0.0f, 1.0f);
+      }
+
+      if (mesh->HasTextureCoords(0))
+      {
+        texCoords[i] = gims::f32v3(mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y, 0.0f);
+      }
+      else
+      {
+        texCoords[i] = gims::f32v3(0.0f, 0.0f, 0.0f);
+      }
+    }
+
+    // Extract index data using the helper function
+    std::vector<gims::ui32v3> indices = getTriangleIndicesFromAiMesh(mesh);
+
+    // Determine material index
+    gims::ui32 materialIndex = mesh->mMaterialIndex;
+
+    // Create TriangleMeshD3D12 and add it to the scene's mesh list
+    TriangleMeshD3D12 triangleMesh(positions.data(), normals.data(), texCoords.data(),
+                                   static_cast<gims::ui32>(positions.size()), indices.data(),
+                                   static_cast<gims::ui32>(indices.size()), materialIndex, device, commandQueue);
+
+    outputScene.m_meshes.push_back(std::move(triangleMesh));
+  }
 }
 
 gims::ui32 SceneGraphFactory::createNodes(aiScene const* const inputScene, Scene& outputScene,

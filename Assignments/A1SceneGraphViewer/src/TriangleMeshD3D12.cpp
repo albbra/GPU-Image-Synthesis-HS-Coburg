@@ -24,29 +24,65 @@ TriangleMeshD3D12::TriangleMeshD3D12(gims::f32v3 const* const positions, gims::f
     , m_indexBufferSize(static_cast<gims::ui32>(nIndices * sizeof(gims::ui32)))
     , m_aabb(positions, nVertices)
     , m_materialIndex(materialIndex)
+    , m_vertexBuffer()
+    , m_vertexBufferView()
+    , m_indexBuffer()
+    , m_indexBufferView()
 {
   if (!positions || !normals || !textureCoordinates || !indexBuffer || !device || !commandQueue)
   {
     throw std::invalid_argument("Invalid arguments passed to TriangleMeshD3D12 constructor.");
   }
 
-  // Create combined vertex array
-  std::vector<Vertex> vertices(nVertices);
+  // Create vertex data
+  std::vector<Vertex> vertexBufferCPU(nVertices);
   for (gims::ui32 i = 0; i < nVertices; ++i)
   {
-    vertices[i].position = positions[i];
-    vertices[i].normal   = normals[i];
-    vertices[i].texCoord = {textureCoordinates[i].x, textureCoordinates[i].y};
+    vertexBufferCPU[i].position = positions[i];
+    vertexBufferCPU[i].normal   = normals[i];
+    vertexBufferCPU[i].texCoord = {textureCoordinates[i].x, textureCoordinates[i].y};
   }
 
-  // Instantiate the UploadHelper
+  // Convert index buffer to a CPU-side array
+  std::vector<gims::ui32> indexBufferCPU(nIndices * 3); // Assuming triangles
+  memcpy(indexBufferCPU.data(), indexBuffer, m_indexBufferSize);
+
+  // Instantiate UploadHelper
   gims::UploadHelper uploadHelper(device, std::max(m_vertexBufferSize, m_indexBufferSize));
 
-  // Upload vertex buffer
-  uploadHelper.uploadBuffer(vertices.data(), m_vertexBuffer, m_vertexBufferSize, commandQueue);
+  // Vertex Buffer Creation and Upload
 
-  // Upload index buffer
-  uploadHelper.uploadBuffer(indexBuffer, m_indexBuffer, m_indexBufferSize, commandQueue);
+  const CD3DX12_RESOURCE_DESC   vertexBufferDesc = CD3DX12_RESOURCE_DESC::Buffer(m_vertexBufferSize);
+  const CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_DEFAULT);
+
+  if (FAILED(device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &vertexBufferDesc,
+                                             D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&m_vertexBuffer))))
+  {
+    throw std::runtime_error("Failed to create vertex buffer resource.");
+  }
+
+  uploadHelper.uploadBuffer(vertexBufferCPU.data(), m_vertexBuffer, m_vertexBufferSize, commandQueue);
+
+  // Configure vertex buffer view
+  m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
+  m_vertexBufferView.SizeInBytes    = m_vertexBufferSize;
+  m_vertexBufferView.StrideInBytes  = sizeof(Vertex);
+
+  // Index Buffer Creation and Upload
+  const CD3DX12_RESOURCE_DESC indexBufferDesc = CD3DX12_RESOURCE_DESC::Buffer(m_indexBufferSize);
+
+  if (FAILED(device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &indexBufferDesc,
+                                             D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&m_indexBuffer))))
+  {
+    throw std::runtime_error("Failed to create index buffer resource.");
+  }
+
+  // Configure index buffer view
+  m_indexBufferView.BufferLocation = m_indexBuffer->GetGPUVirtualAddress();
+  m_indexBufferView.SizeInBytes    = m_indexBufferSize;
+  m_indexBufferView.Format         = DXGI_FORMAT_R32_UINT;
+
+  uploadHelper.uploadBuffer(indexBufferCPU.data(), m_indexBuffer, m_indexBufferSize, commandQueue);
 }
 
 void TriangleMeshD3D12::addToCommandList(const Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>& commandList) const
@@ -56,24 +92,12 @@ void TriangleMeshD3D12::addToCommandList(const Microsoft::WRL::ComPtr<ID3D12Grap
     throw std::invalid_argument("Command list is null.");
   }
 
-  // Vertex buffer view
-  D3D12_VERTEX_BUFFER_VIEW vertexBufferView {};
-  vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
-  vertexBufferView.SizeInBytes    = m_vertexBufferSize;
-  vertexBufferView.StrideInBytes  = sizeof(Vertex);
-
-  // Index buffer view
-  D3D12_INDEX_BUFFER_VIEW indexBufferView {};
-  indexBufferView.BufferLocation = m_indexBuffer->GetGPUVirtualAddress();
-  indexBufferView.SizeInBytes    = m_indexBufferSize;
-  indexBufferView.Format         = DXGI_FORMAT_R32_UINT;
-
-  // Set buffers on the command list
-  commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
-  commandList->IASetIndexBuffer(&indexBufferView);
+  // Set buffers and topology
+  commandList->IASetVertexBuffers(0, 1, &m_vertexBufferView);
+  commandList->IASetIndexBuffer(&m_indexBufferView);
   commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-  // Draw indexed primitives
+  // Issue draw command
   commandList->DrawIndexedInstanced(m_nIndices, 1, 0, 0, 0);
 }
 
@@ -95,7 +119,9 @@ const std::vector<D3D12_INPUT_ELEMENT_DESC>& TriangleMeshD3D12::getInputElementD
 TriangleMeshD3D12::TriangleMeshD3D12()
     : m_nIndices(0)
     , m_vertexBufferSize(0)
+    , m_vertexBufferView()
     , m_indexBufferSize(0)
     , m_materialIndex((gims::ui32)-1)
+    , m_indexBufferView()
 {
 }

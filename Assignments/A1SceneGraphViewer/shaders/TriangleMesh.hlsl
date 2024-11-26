@@ -65,5 +65,8 @@ VertexShaderOutput VS_main(VertexInput input)
 float4 PS_main(VertexShaderOutput input)
     : SV_TARGET
 {
-  return float4(input.viewSpaceNormal.x, input.texCoord.y, 0.0f, 1.0f); 
+  //return float4(input.viewSpaceNormal.x, input.texCoord.y, 0.0f, 1.0f); 
+    
+  // Use texture coordinates for debugging: map texCoord (u, v) to color (R, G)
+  return float4(input.texCoord.x, input.texCoord.y, 0.0f, 1.0f);
 }

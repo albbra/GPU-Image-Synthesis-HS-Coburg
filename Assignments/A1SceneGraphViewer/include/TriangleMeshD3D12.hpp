@@ -70,7 +70,9 @@ private:
   AABB                                   m_aabb;             //! Axis aligned bounding box of the mesh.
   gims::ui32                             m_materialIndex;    //! Material index of the mesh.
   Microsoft::WRL::ComPtr<ID3D12Resource> m_vertexBuffer;     //! The vertex buffer on the GPU.
-  Microsoft::WRL::ComPtr<ID3D12Resource> m_indexBuffer;      //! The index buffer on the GPU.
+  D3D12_VERTEX_BUFFER_VIEW               m_vertexBufferView;
+  Microsoft::WRL::ComPtr<ID3D12Resource> m_indexBuffer; //! The index buffer on the GPU.
+  D3D12_INDEX_BUFFER_VIEW                m_indexBufferView;
 
   //! Input element descriptor defining the vertex format.
   static const std::vector<D3D12_INPUT_ELEMENT_DESC> m_inputElementDescs;

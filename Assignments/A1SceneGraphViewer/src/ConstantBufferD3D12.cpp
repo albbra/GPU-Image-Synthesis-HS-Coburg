@@ -25,11 +25,9 @@ ConstantBufferD3D12::ConstantBufferD3D12(size_t sizeInBytes, const Microsoft::WR
   D3D12_HEAP_PROPERTIES heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
   D3D12_RESOURCE_DESC   resourceDesc   = CD3DX12_RESOURCE_DESC::Buffer(m_sizeInBytes);
 
-  HRESULT hr =
-      device->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE, &resourceDesc,
-                                      D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&m_constantBuffer));
-
-  if (FAILED(hr))
+  if (FAILED(device->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE, &resourceDesc,
+                                             D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
+                                             IID_PPV_ARGS(&m_constantBuffer))))
   {
     throw std::runtime_error("Failed to create constant buffer resource.");
   }
@@ -49,10 +47,9 @@ void const ConstantBufferD3D12::upload(void const* const data)
 
   // Map the constant buffer to CPU memory.
   void*       mappedMemory = nullptr;
-  D3D12_RANGE readRange    = {0, 0}; // We won't read from this resource on the CPU.
-  HRESULT     hr           = m_constantBuffer->Map(0, &readRange, &mappedMemory);
+  D3D12_RANGE readRange    = {0, 0};
 
-  if (FAILED(hr))
+  if (FAILED(m_constantBuffer->Map(0, &readRange, &mappedMemory)))
   {
     throw std::runtime_error("Failed to map constant buffer.");
   }
