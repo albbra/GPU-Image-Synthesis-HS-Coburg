@@ -2,6 +2,7 @@
 
 #include "SceneGraphViewerApp.hpp"
 #include "SceneFactory.hpp"
+#include "ConstantBufferStruct.h"
 #include <d3dx12/d3dx12.h>
 #include <gimslib/contrib/stb/stb_image.h>
 #include <gimslib/d3d/DX12Util.hpp>
@@ -176,15 +177,6 @@ void SceneGraphViewerApp::drawScene(const ComPtr<ID3D12GraphicsCommandList>& cmd
 
   m_scene.addToCommandList(cmdLst, cameraMatrix, 1, 2, 3);
 }
-
-namespace
-{
-struct ConstantBuffer
-{
-  f32m4 projectionMatrix;
-};
-
-} // namespace
 
 void SceneGraphViewerApp::createSceneConstantBuffer()
 {

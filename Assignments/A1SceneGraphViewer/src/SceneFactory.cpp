@@ -17,16 +17,28 @@
 std::vector<gims::ui32v3> static getTriangleIndicesFromAiMesh(aiMesh const* const mesh)
 {
   std::vector<gims::ui32v3> result;
-  // Assignment 3
-  (void)mesh;
+
+  if (!mesh || mesh->mPrimitiveTypes != aiPrimitiveType_TRIANGLE)
+  {
+    return result; // Ensure the mesh contains only triangles.
+  }
+
+  for (unsigned int i = 0; i < mesh->mNumFaces; ++i)
+  {
+    const aiFace& face = mesh->mFaces[i];
+    if (face.mNumIndices == 3)
+    { // Ensure the face is a triangle.
+      result.emplace_back(gims::ui32v3 {face.mIndices[0], face.mIndices[1], face.mIndices[2]});
+    }
+  }
+
   return result;
 }
 
-void static addTextureToDescriptorHeap(const Microsoft::WRL::ComPtr<ID3D12Device>& device, aiTextureType aiTextureTypeValue,
-                                gims::i32 offsetInDescriptors, aiMaterial const* const inputMaterial,
-                                const std::vector<Texture2DD3D12>& m_textures, Material& material,
-                                std::unordered_map<std::filesystem::path, gims::ui32> textureFileNameToTextureIndex,
-                                gims::ui32                                            defaultTextureIndex)
+void static addTextureToDescriptorHeap(
+    const Microsoft::WRL::ComPtr<ID3D12Device>& device, aiTextureType aiTextureTypeValue, gims::i32 offsetInDescriptors,
+    aiMaterial const* const inputMaterial, const std::vector<Texture2DD3D12>& m_textures, Material& material,
+    std::unordered_map<std::filesystem::path, gims::ui32> textureFileNameToTextureIndex, gims::ui32 defaultTextureIndex)
 {
   if (inputMaterial->GetTextureCount(aiTextureTypeValue) == 0)
   {
@@ -79,7 +91,8 @@ std::unordered_map<std::filesystem::path, gims::ui32> static textureFilenameToIn
 /// <param name="idx"></param>
 /// <param name="material">The material from which we wish to extract the color.</param>
 /// <returns>Color or 0 vector if no color exists.</returns>
-gims::f32v4 static getColor(char const* const pKey, unsigned int type, unsigned int idx, aiMaterial const* const material)
+gims::f32v4 static getColor(char const* const pKey, unsigned int type, unsigned int idx,
+                            aiMaterial const* const material)
 {
   aiColor3D color;
   if (material->Get(pKey, type, idx, color) == aiReturn_SUCCESS)
@@ -92,7 +105,7 @@ gims::f32v4 static getColor(char const* const pKey, unsigned int type, unsigned 
   }
 }
 
-Scene SceneGraphFactory::createFromAssImpScene(const std::filesystem::path       pathToScene,
+Scene SceneGraphFactory::createFromAssImpScene(const std::filesystem::path                       pathToScene,
                                                const Microsoft::WRL::ComPtr<ID3D12Device>&       device,
                                                const Microsoft::WRL::ComPtr<ID3D12CommandQueue>& commandQueue)
 {
@@ -129,7 +142,8 @@ Scene SceneGraphFactory::createFromAssImpScene(const std::filesystem::path      
   return outputScene;
 }
 
-void SceneGraphFactory::createMeshes(aiScene const* const inputScene, const Microsoft::WRL::ComPtr<ID3D12Device>& device,
+void SceneGraphFactory::createMeshes(aiScene const* const                              inputScene,
+                                     const Microsoft::WRL::ComPtr<ID3D12Device>&       device,
                                      const Microsoft::WRL::ComPtr<ID3D12CommandQueue>& commandQueue, Scene& outputScene)
 {
   // Assignment 3
