@@ -271,14 +271,50 @@ gims::ui32 SceneGraphFactory::createNodes(aiScene const* const inputScene, Scene
 
 void SceneGraphFactory::computeSceneAABB(Scene& scene, AABB& aabb, gims::ui32 nodeIdx, gims::f32m4 transformation)
 {
-  (void)transformation;
-  (void)scene;
-  (void)aabb;
+  // Validierung: Prüfen, ob der Knotenindex gültig ist
   if (nodeIdx >= scene.getNumberOfNodes())
   {
     return;
   }
-  // Assignment 5
+
+  // Hole den aktuellen Knoten
+  const Node& currentNode = scene.getNode(nodeIdx);
+
+  // Transformation des aktuellen Knotens anwenden
+  gims::f32m4 nodeTransformation = transformation * currentNode.transformation;
+
+  // Verarbeite alle Meshes des Knotens
+  for (gims::ui32 meshIdx : currentNode.meshIndices)
+  {
+    // Hole die AABB des Meshes
+    const TriangleMeshD3D12& mesh     = scene.getMesh(meshIdx);
+    AABB                     meshAABB = mesh.getAABB();
+
+    // Transformiere die AABB mit der aktuellen Transformation
+    AABB transformedAABB = meshAABB.getTransformed(nodeTransformation);
+
+    // Füge die transformierte AABB zur globalen AABB hinzu
+    aabb = aabb.getUnion(transformedAABB);
+  }
+
+  // Rekursiv alle Kindknoten traversieren
+  for (gims::ui32 childIdx : currentNode.childIndices)
+  {
+    computeSceneAABB(scene, aabb, childIdx, nodeTransformation);
+  }
+
+  // Ausgabe am Ende
+  if (nodeIdx == 0) // Annahme: Root-Knoten hat den Index 0
+  {
+    const gims::f32v3& lowerLeft  = aabb.getLowerLeftBottom();
+    const gims::f32v3& upperRight = aabb.getUpperRightTop();
+
+    std::cout << "AABB Lower Left Bottom: (" << lowerLeft.x << ", " << lowerLeft.y << ", " << lowerLeft.z << ")"
+              << std::endl;
+
+    std::cout << "AABB Upper Right Top: (" << upperRight.x << ", " << upperRight.y << ", " << upperRight.z << ")"
+              << std::endl;
+  }
 }
 
 void SceneGraphFactory::createTextures(
