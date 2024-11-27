@@ -8,6 +8,7 @@
 #include <gimslib/d3d/UploadHelper.hpp>
 #include <gimslib/dbg/HrException.hpp>
 #include <iostream>
+#include <stack>
 
 /// <summary>
 /// Converts the index buffer required for D3D12 renndering from an aiMesh.
@@ -103,6 +104,29 @@ gims::f32v4 static getColor(char const* const pKey, unsigned int type, unsigned 
   {
     return gims::f32v4(0.0f);
   }
+}
+
+static gims::f32m4 convertAssimpMatrixToGims(const aiMatrix4x4& assimpMatrix)
+{
+  gims::f32m4 gimsMatrix = {};
+  // Assimp matrices are row-major; gims::f32m4 is column-major.
+  gimsMatrix[0][0] = assimpMatrix.a1;
+  gimsMatrix[1][0] = assimpMatrix.a2;
+  gimsMatrix[2][0] = assimpMatrix.a3;
+  gimsMatrix[3][0] = assimpMatrix.a4;
+  gimsMatrix[0][1] = assimpMatrix.b1;
+  gimsMatrix[1][1] = assimpMatrix.b2;
+  gimsMatrix[2][1] = assimpMatrix.b3;
+  gimsMatrix[3][1] = assimpMatrix.b4;
+  gimsMatrix[0][2] = assimpMatrix.c1;
+  gimsMatrix[1][2] = assimpMatrix.c2;
+  gimsMatrix[2][2] = assimpMatrix.c3;
+  gimsMatrix[3][2] = assimpMatrix.c4;
+  gimsMatrix[0][3] = assimpMatrix.d1;
+  gimsMatrix[1][3] = assimpMatrix.d2;
+  gimsMatrix[2][3] = assimpMatrix.d3;
+  gimsMatrix[3][3] = assimpMatrix.d4;
+  return gimsMatrix;
 }
 
 Scene SceneGraphFactory::createFromAssImpScene(const std::filesystem::path                       pathToScene,
@@ -207,11 +231,42 @@ void SceneGraphFactory::createMeshes(aiScene const* const                       
 gims::ui32 SceneGraphFactory::createNodes(aiScene const* const inputScene, Scene& outputScene,
                                           aiNode const* const inputNode)
 {
-  (void)inputScene;
-  (void)outputScene;
-  (void)inputNode;
-  // Assignment 4
-  return 0;
+  if (!inputScene || !inputNode)
+    throw std::invalid_argument("Input scene or node is null.");
+
+  // Create a new node in the Scene
+  Node newNode;
+
+  // Convert the node's transformation matrix
+  newNode.transformation = convertAssimpMatrixToGims(inputNode->mTransformation);
+
+  // Map the node's meshes
+  for (unsigned int i = 0; i < inputNode->mNumMeshes; ++i)
+  {
+    const unsigned int meshIndex = inputNode->mMeshes[i];
+    if (meshIndex >= inputScene->mNumMeshes)
+      throw std::out_of_range("Mesh index out of range in inputNode.");
+
+    // Add the mesh index to the node
+    newNode.meshIndices.push_back(meshIndex);
+  }
+
+  // Add the node to the outputScene's m_nodes array and get its index
+  gims::ui32 currentIndex = static_cast<gims::ui32>(outputScene.m_nodes.size());
+  outputScene.m_nodes.push_back(newNode);
+
+  // Process child nodes recursively
+  for (unsigned int i = 0; i < inputNode->mNumChildren; ++i)
+  {
+    // Recursively create child nodes and get their index
+    gims::ui32 childIndex = createNodes(inputScene, outputScene, inputNode->mChildren[i]);
+
+    // Add the child index to the current node's childIndices
+    outputScene.m_nodes[currentIndex].childIndices.push_back(childIndex);
+  }
+
+  // Return the index of the newly created node
+  return currentIndex;
 }
 
 void SceneGraphFactory::computeSceneAABB(Scene& scene, AABB& aabb, gims::ui32 nodeIdx, gims::f32m4 transformation)
