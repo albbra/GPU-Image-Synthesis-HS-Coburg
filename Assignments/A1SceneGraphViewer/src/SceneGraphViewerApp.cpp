@@ -1,8 +1,8 @@
 // SceneGraphViewerApp.cpp
 
 #include "SceneGraphViewerApp.hpp"
-#include "SceneFactory.hpp"
 #include "ConstantBufferStruct.h"
+#include "SceneFactory.hpp"
 #include <d3dx12/d3dx12.h>
 #include <gimslib/contrib/stb/stb_image.h>
 #include <gimslib/d3d/DX12Util.hpp>
@@ -176,6 +176,12 @@ void SceneGraphViewerApp::drawScene(const ComPtr<ID3D12GraphicsCommandList>& cmd
   cmdLst->SetGraphicsRootConstantBufferView(0, cb);
 
   m_scene.addToCommandList(cmdLst, cameraMatrix, 1, 2, 3);
+
+  gims::ui32 meshNumber = m_scene.getNumberOfMeshes();
+  for (gims::ui32 meshIndex = 0; meshIndex < meshNumber; meshIndex++)
+  {
+    m_scene.getMesh(meshIndex).addToCommandList(cmdLst);
+  }
 }
 
 void SceneGraphViewerApp::createSceneConstantBuffer()

@@ -35,6 +35,11 @@ const gims::ui32 Scene::getNumberOfNodes() const
   return static_cast<gims::ui32>(m_nodes.size());
 }
 
+const gims::ui32 Scene::getNumberOfMeshes() const
+{
+  return static_cast<gims::ui32>(m_meshes.size());
+}
+
 const TriangleMeshD3D12& Scene::getMesh(gims::ui32 meshIdx) const
 {
   return m_meshes[meshIdx];

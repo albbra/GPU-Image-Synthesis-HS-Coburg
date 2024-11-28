@@ -55,6 +55,8 @@ public:
   /// <param name="materialIdx">Index of the mesh.</param>
   const TriangleMeshD3D12& getMesh(gims::ui32 meshIdx) const;
 
+  const gims::ui32 getNumberOfMeshes() const;
+
   /// <summary>
   /// Materials are stored in a 1D array. This function returns the Material at the respective index.
   /// </summary>

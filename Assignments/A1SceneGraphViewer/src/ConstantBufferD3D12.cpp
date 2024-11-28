@@ -46,18 +46,11 @@ void const ConstantBufferD3D12::upload(void const* const data)
   }
 
   // Map the constant buffer to CPU memory.
-  void*       mappedMemory = nullptr;
-  D3D12_RANGE readRange    = {0, 0};
-
-  if (FAILED(m_constantBuffer->Map(0, &readRange, &mappedMemory)))
+  void* mappedMemory = nullptr;
+  if (FAILED(m_constantBuffer->Map(0, nullptr, &mappedMemory)))
   {
     throw std::runtime_error("Failed to map constant buffer.");
   }
-
-  // Copy data to the mapped memory.
   memcpy(mappedMemory, data, m_sizeInBytes);
-
-  // Unmap the constant buffer.
-  D3D12_RANGE writtenRange = {0, m_sizeInBytes}; // Specify the range of data written.
-  m_constantBuffer->Unmap(0, &writtenRange);
+  m_constantBuffer->Unmap(0, nullptr);
 }

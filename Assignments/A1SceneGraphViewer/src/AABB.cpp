@@ -55,27 +55,9 @@ const gims::f32v3& AABB::getUpperRightTop() const
 
 AABB AABB::getTransformed(gims::f32m4& transformation) const
 {
-  // Define all 8 corners of the bounding box
-  const gims::f32v3 corners[8] = {m_lowerLeftBottom,
-                                  {m_upperRightTop.x, m_lowerLeftBottom.y, m_lowerLeftBottom.z},
-                                  {m_lowerLeftBottom.x, m_upperRightTop.y, m_lowerLeftBottom.z},
-                                  {m_lowerLeftBottom.x, m_lowerLeftBottom.y, m_upperRightTop.z},
-                                  {m_upperRightTop.x, m_upperRightTop.y, m_lowerLeftBottom.z},
-                                  {m_upperRightTop.x, m_lowerLeftBottom.y, m_upperRightTop.z},
-                                  {m_lowerLeftBottom.x, m_upperRightTop.y, m_upperRightTop.z},
-                                  m_upperRightTop};
+  AABB transformedAABB;
+  transformedAABB.m_lowerLeftBottom = transformation * gims::f32v4(m_lowerLeftBottom, 1.0f);
+  transformedAABB.m_upperRightTop   = transformation * gims::f32v4(m_upperRightTop, 1.0f);
 
-  // Initialize transformed bounds
-  gims::f32v3 transformedLowerLeft(std::numeric_limits<gims::f32>::max());
-  gims::f32v3 transformedUpperRight(-std::numeric_limits<gims::f32>::max());
-
-  // Transform each corner and update bounds
-  for (const gims::f32v3& corner : corners)
-  {
-    gims::f32v3 transformedCorner = gims::f32v3(transformation * gims::f32v4(corner, 1.0f));
-    transformedLowerLeft          = glm::min(transformedLowerLeft, transformedCorner);
-    transformedUpperRight         = glm::max(transformedUpperRight, transformedCorner);
-  }
-
-  return AABB(transformedLowerLeft, transformedUpperRight);
+  return transformedAABB;
 }

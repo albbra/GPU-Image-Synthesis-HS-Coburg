@@ -61,12 +61,12 @@ TriangleMeshD3D12::TriangleMeshD3D12(gims::f32v3 const* const positions, gims::f
     throw std::runtime_error("Failed to create vertex buffer resource.");
   }
 
-  uploadHelper.uploadBuffer(vertexBufferCPU.data(), m_vertexBuffer, m_vertexBufferSize, commandQueue);
-
   // Configure vertex buffer view
   m_vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
   m_vertexBufferView.SizeInBytes    = m_vertexBufferSize;
   m_vertexBufferView.StrideInBytes  = sizeof(Vertex);
+
+  uploadHelper.uploadBuffer(vertexBufferCPU.data(), m_vertexBuffer, m_vertexBufferSize, commandQueue);
 
   // Index Buffer Creation and Upload
   const CD3DX12_RESOURCE_DESC indexBufferDesc = CD3DX12_RESOURCE_DESC::Buffer(m_indexBufferSize);
