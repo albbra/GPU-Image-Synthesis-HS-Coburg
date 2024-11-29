@@ -15,7 +15,7 @@ AABB::AABB(gims::f32v3 const* const positions, gims::ui32 nPositions)
 {
   for (gims::ui32 i = 0; i < nPositions; i++)
   {
-    const auto& p     = positions[i];
+    const glm::vec3& p     = positions[i];
     m_lowerLeftBottom = glm::min(m_lowerLeftBottom, p);
     m_upperRightTop   = glm::max(m_upperRightTop, p);
   }
@@ -40,7 +40,7 @@ gims::f32m4 AABB::getNormalizationTransformation() const
 
 AABB AABB::getUnion(const AABB& other) const
 {
-  return AABB(glm::min(m_lowerLeftBottom, other.m_lowerLeftBottom), glm::max(m_upperRightTop, other.m_upperRightTop));
+  return {glm::min(m_lowerLeftBottom, other.m_lowerLeftBottom), glm::max(m_upperRightTop, other.m_upperRightTop)};
 }
 
 const gims::f32v3& AABB::getLowerLeftBottom()
@@ -55,9 +55,5 @@ const gims::f32v3& AABB::getUpperRightTop() const
 
 AABB AABB::getTransformed(gims::f32m4& transformation) const
 {
-  AABB transformedAABB;
-  transformedAABB.m_lowerLeftBottom = transformation * gims::f32v4(m_lowerLeftBottom, 1.0f);
-  transformedAABB.m_upperRightTop   = transformation * gims::f32v4(m_upperRightTop, 1.0f);
-
-  return transformedAABB;
+  return {transformation * gims::f32v4(m_lowerLeftBottom, 1.0f), transformation * gims::f32v4(m_upperRightTop, 1.0f)};
 }

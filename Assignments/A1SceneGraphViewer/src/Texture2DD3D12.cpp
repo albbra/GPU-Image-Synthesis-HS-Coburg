@@ -24,8 +24,8 @@ Microsoft::WRL::ComPtr<ID3D12Resource> static createTexture(void const* const da
 Texture2DD3D12::Texture2DD3D12(std::filesystem::path path, const Microsoft::WRL::ComPtr<ID3D12Device>& device,
                                const Microsoft::WRL::ComPtr<ID3D12CommandQueue>& commandQueue)
 {
-  const auto fileName      = path.generic_string();
-  const auto fileNameCStr  = fileName.c_str();
+  const std::string fileName      = path.generic_string();
+  const char* const fileNameCStr  = fileName.c_str();
   gims::i32  textureWidth  = {0};
   gims::i32  textureHeight = {0};
   gims::i32  textureComp   = {0};

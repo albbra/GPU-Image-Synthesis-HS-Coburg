@@ -269,7 +269,7 @@ void MeshViewer::loadTexture()
   textureDesc.Dimension           = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 
   // Create a committed resource for the texture on the GPU
-  const auto heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+  const CD3DX12_HEAP_PROPERTIES heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
   throwIfFailed(getDevice()->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE, &textureDesc,
                                                      D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&m_texture)));
 
@@ -305,7 +305,6 @@ void MeshViewer::loadTexture()
 void MeshViewer::createConstantBuffer()
 {
   f32m4 viewMatrix                          = m_examinerController.getTransformationMatrix();
-  //m_perFrameData.mvp                        = viewMatrix * m_normalizationTransformation;
   m_perFrameData.ambientColor               = f32v4(0.1f, 0.1f, 0.1f, 1.0f);
   m_perFrameData.diffuseColor               = f32v4(0.8f, 0.8f, 0.8f, 1.0f);
   m_perFrameData.specularColor_and_Exponent = f32v4(1.0f, 1.0f, 1.0f, 32.0f);
@@ -471,8 +470,8 @@ void MeshViewer::setPerFrameData(gims::f32m4& newTransformationMatrix)
 {
   m_projection = getScaledProjectionMatrix();
 
-  m_perFrameData.mvp                        = m_projection * m_view * newTransformationMatrix * m_normalizationTransformation;
-  m_perFrameData.mv                         = m_view * newTransformationMatrix;
+  m_perFrameData.mvp = m_projection * m_view * newTransformationMatrix * m_normalizationTransformation;
+  m_perFrameData.mv  = m_view * newTransformationMatrix;
   m_perFrameData.specularColor_and_Exponent = {m_uiData.specularColor, m_uiData.exponent};
   m_perFrameData.ambientColor               = {m_uiData.ambientColor, 1.0f};
   m_perFrameData.diffuseColor               = {m_uiData.diffuseColor, 1.0f};

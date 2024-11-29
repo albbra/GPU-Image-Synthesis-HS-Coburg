@@ -65,7 +65,7 @@ void SceneGraphViewerApp::onDraw()
 
 void SceneGraphViewerApp::onDrawUI()
 {
-  const auto imGuiFlags = m_examinerController.active() ? ImGuiWindowFlags_NoInputs : ImGuiWindowFlags_None;
+  const ImGuiWindowFlags_ imGuiFlags = m_examinerController.active() ? ImGuiWindowFlags_NoInputs : ImGuiWindowFlags_None;
   ImGui::Begin("Information", nullptr, imGuiFlags);
   ImGui::Text("Frametime: %f", 1.0f / ImGui::GetIO().Framerate * 1000.0f);
   ImGui::End();
@@ -107,9 +107,8 @@ void SceneGraphViewerApp::createRootSignature()
 
   // Serialize and create the root signature
   ComPtr<ID3DBlob> rootBlob, errorBlob;
-  HRESULT hr = D3D12SerializeRootSignature(&descRootSignature, D3D_ROOT_SIGNATURE_VERSION_1, &rootBlob, &errorBlob);
 
-  if (FAILED(hr))
+  if (FAILED(D3D12SerializeRootSignature(&descRootSignature, D3D_ROOT_SIGNATURE_VERSION_1, &rootBlob, &errorBlob)))
   {
     // Handle serialization errors (debug messages or logging)
     if (errorBlob)
@@ -120,13 +119,12 @@ void SceneGraphViewerApp::createRootSignature()
   }
 
   // Create the root signature on the device
-  hr = getDevice()->CreateRootSignature(0,                             // Node mask
-                                        rootBlob->GetBufferPointer(),  // Root signature blob
-                                        rootBlob->GetBufferSize(),     // Blob size
-                                        IID_PPV_ARGS(&m_rootSignature) // Output root signature
-  );
 
-  if (FAILED(hr))
+  if (FAILED(getDevice()->CreateRootSignature(0,                             // Node mask
+                                              rootBlob->GetBufferPointer(),  // Root signature blob
+                                              rootBlob->GetBufferSize(),     // Blob size
+                                              IID_PPV_ARGS(&m_rootSignature) // Output root signature
+                                              )))
   {
     throw std::runtime_error("Failed to create root signature.");
   }
@@ -166,14 +164,12 @@ void SceneGraphViewerApp::createPipeline()
 
 void SceneGraphViewerApp::drawScene(const ComPtr<ID3D12GraphicsCommandList>& cmdLst)
 {
-  
-  const auto cb           = m_constantBuffers[getFrameIndex()].getResource()->GetGPUVirtualAddress();
-  const auto mcb           = m_perMeshConstantBuffers[getFrameIndex()].getResource()->GetGPUVirtualAddress();
-  const auto cameraMatrix = m_examinerController.getTransformationMatrix();
+
+  const D3D12_GPU_VIRTUAL_ADDRESS cb           = m_constantBuffers[getFrameIndex()].getResource()->GetGPUVirtualAddress();
+  const D3D12_GPU_VIRTUAL_ADDRESS mcb          = m_perMeshConstantBuffers[getFrameIndex()].getResource()->GetGPUVirtualAddress();
+  const gims::f32m4 cameraMatrix = m_examinerController.getTransformationMatrix();
 
   updateSceneConstantBuffer();
-  
-
 
   // Assignment 6
 
@@ -184,14 +180,13 @@ void SceneGraphViewerApp::drawScene(const ComPtr<ID3D12GraphicsCommandList>& cmd
 
   m_scene.addToCommandList(cmdLst, cameraMatrix, 1, 2, 3);
 
-  gims::ui32 meshNumber = 1;//m_scene.getNumberOfMeshes();
+  cmdLst->SetGraphicsRootConstantBufferView(1, mcb);
+
+  gims::ui32 meshNumber = 1; // m_scene.getNumberOfMeshes();
   for (gims::ui32 meshIndex = 0; meshIndex < meshNumber; meshIndex++)
   {
-    const auto modelMatrix = m_scene.getMesh(meshIndex)
-                                 .getAABB()
-                                 .getNormalizationTransformation();
-    const auto mv = cameraMatrix * modelMatrix;
-    cmdLst->SetGraphicsRootConstantBufferView(1, mcb);
+    const gims::f32m4 modelMatrix = m_scene.getMesh(meshIndex).getAABB().getNormalizationTransformation();
+    const gims::f32m4 mv          = cameraMatrix * modelMatrix;
     updatePerMeshConstantBuffer(mv);
     m_scene.getMesh(meshIndex).addToCommandList(cmdLst);
   }
@@ -210,8 +205,8 @@ void SceneGraphViewerApp::createSceneConstantBuffer()
 
 void SceneGraphViewerApp::createScenePerMeshConstantBuffer()
 {
-  const PerMeshConstantBuffer mcb         = {};
-  const gims::ui64     frameCount = getDX12AppConfig().frameCount;
+  const PerMeshConstantBuffer mcb        = {};
+  const gims::ui64            frameCount = getDX12AppConfig().frameCount;
   m_perMeshConstantBuffers.resize(frameCount);
   for (gims::ui32 i = 0; i < frameCount; i++)
   {
@@ -230,7 +225,7 @@ void SceneGraphViewerApp::updateSceneConstantBuffer()
 void SceneGraphViewerApp::updatePerMeshConstantBuffer(gims::f32m4 mv)
 {
   PerMeshConstantBuffer mcb = {};
-  mcb.modelViewMatrix = mv;
+  mcb.modelViewMatrix       = mv;
 
   m_perMeshConstantBuffers[getFrameIndex()].upload(&mcb);
 }

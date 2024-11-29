@@ -67,8 +67,9 @@ std::unordered_map<std::filesystem::path, gims::ui32> static textureFilenameToIn
         aiString path;
         inputScene->mMaterials[mIdx]->GetTexture((aiTextureType)textureType, i, &path);
 
-        const auto texturePathCstr = path.C_Str();
-        const auto textureIter     = textureFileNameToTextureIndex.find(texturePathCstr);
+        const char* const                                                           texturePathCstr = path.C_Str();
+        const std::unordered_map<std::filesystem::path, gims::ui32>::const_iterator textureIter =
+            textureFileNameToTextureIndex.find(texturePathCstr);
         if (textureIter == textureFileNameToTextureIndex.end())
         {
           textureFileNameToTextureIndex.emplace(texturePathCstr, static_cast<gims::ui32>(textureIdx));
@@ -134,25 +135,26 @@ Scene SceneGraphFactory::createFromAssImpScene(const std::filesystem::path      
 {
   Scene outputScene;
 
-  const auto absolutePath = std::filesystem::weakly_canonical(pathToScene);
+  const std::filesystem::path absolutePath = std::filesystem::weakly_canonical(pathToScene);
   if (!std::filesystem::exists(absolutePath))
   {
     throw std::exception((absolutePath.string() + std::string(" does not exist.")).c_str());
   }
 
-  const auto arguments = aiPostProcessSteps::aiProcess_Triangulate | aiProcess_GenSmoothNormals |
-                         aiProcess_GenUVCoords | aiProcess_ConvertToLeftHanded | aiProcess_OptimizeMeshes |
-                         aiProcess_RemoveRedundantMaterials | aiProcess_ImproveCacheLocality |
-                         aiProcess_FindInvalidData | aiProcess_FindDegenerates;
+  const gims::ui32 arguments = aiPostProcessSteps::aiProcess_Triangulate | aiProcess_GenSmoothNormals |
+                               aiProcess_GenUVCoords | aiProcess_ConvertToLeftHanded | aiProcess_OptimizeMeshes |
+                               aiProcess_RemoveRedundantMaterials | aiProcess_ImproveCacheLocality |
+                               aiProcess_FindInvalidData | aiProcess_FindDegenerates;
 
   Assimp::Importer imp;
   imp.SetPropertyBool(AI_CONFIG_PP_FD_REMOVE, true);
-  auto inputScene = imp.ReadFile(absolutePath.string(), arguments);
+  const aiScene* inputScene = imp.ReadFile(absolutePath.string(), arguments);
   if (!inputScene)
   {
     throw std::exception((absolutePath.string() + std::string(" can't be loaded. with Assimp.")).c_str());
   }
-  const auto textureFileNameToTextureIndex = textureFilenameToIndex(inputScene);
+  const std::unordered_map<std::filesystem::path, gims::ui32> textureFileNameToTextureIndex =
+      textureFilenameToIndex(inputScene);
 
   createMeshes(inputScene, device, commandQueue, outputScene);
 
@@ -219,11 +221,9 @@ void SceneGraphFactory::createMeshes(aiScene const* const                       
     gims::ui32 materialIndex = mesh->mMaterialIndex;
 
     // Create TriangleMeshD3D12 and add it to the scene's mesh list
-    TriangleMeshD3D12 triangleMesh(positions.data(), normals.data(), texCoords.data(),
-                                   static_cast<gims::ui32>(positions.size()), indices.data(),
-                                   static_cast<gims::ui32>(indices.size() * 3), materialIndex, device, commandQueue);
-
-    outputScene.m_meshes.push_back(std::move(triangleMesh));
+    outputScene.m_meshes.emplace_back(positions.data(), normals.data(), texCoords.data(),
+                                      static_cast<gims::ui32>(positions.size()), indices.data(),
+                                      static_cast<gims::ui32>(indices.size() * 3), materialIndex, device, commandQueue);
   }
 }
 
