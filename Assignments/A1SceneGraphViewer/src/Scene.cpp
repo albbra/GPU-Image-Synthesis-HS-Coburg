@@ -17,6 +17,9 @@ void static addToCommandListImpl(Scene& scene, gims::ui32 nodeIdx, gims::f32m4 t
   (void)materialConstantsRootParameterIdx;
   (void)srvRootParameterIdx;
   // Assignemt 6
+  
+
+
   // Assignment 10
 }
 

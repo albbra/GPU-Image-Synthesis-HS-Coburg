@@ -15,9 +15,9 @@ AABB::AABB(gims::f32v3 const* const positions, gims::ui32 nPositions)
 {
   for (gims::ui32 i = 0; i < nPositions; i++)
   {
-    const glm::vec3& p     = positions[i];
-    m_lowerLeftBottom = glm::min(m_lowerLeftBottom, p);
-    m_upperRightTop   = glm::max(m_upperRightTop, p);
+    const glm::vec3& p = positions[i];
+    m_lowerLeftBottom  = glm::min(m_lowerLeftBottom, p);
+    m_upperRightTop    = glm::max(m_upperRightTop, p);
   }
 }
 
@@ -29,13 +29,15 @@ AABB::AABB(const gims::f32v3& lowerLeft, const gims::f32v3& upperRight)
 
 gims::f32m4 AABB::getNormalizationTransformation() const
 {
-  gims::f32v3 size = m_upperRightTop - m_lowerLeftBottom;
-  size             = glm::max(size, gims::f32v3(1e-6f)); // Avoid division by zero
+  gims::f32v3     centroid          = (m_lowerLeftBottom + m_upperRightTop) / gims::f32(2);
+  glm::highp_mat4 translationMatrix = glm::translate(glm::mat4(1.0f), -centroid);
 
-  gims::f32v3 center = (m_upperRightTop + m_lowerLeftBottom) * 0.5f;
-  gims::f32v3 scale  = gims::f32v3(1.0f) / size;
+  gims::f32v3     axesLengths       = m_upperRightTop - m_lowerLeftBottom;
+  gims::f32       longestAxisLength = std::max(axesLengths.x, std::max(axesLengths.y, axesLengths.z));
+  gims::f32v3     scalingFactors    = (glm::vec3(1.0f) / longestAxisLength);
+  glm::highp_mat4 scalingMatrix     = glm::scale(glm::mat4(1.0f), scalingFactors);
 
-  return glm::translate(glm::scale(gims::f32m4(1.0f), scale), -center);
+  return scalingMatrix * translationMatrix;
 }
 
 AABB AABB::getUnion(const AABB& other) const
