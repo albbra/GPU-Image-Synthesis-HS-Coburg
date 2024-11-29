@@ -2,6 +2,7 @@
 
 #include "SceneGraphViewerApp.hpp"
 #include "ConstantBufferStruct.h"
+#include "PerMeshConstantBufferStruct.h"
 #include "SceneFactory.hpp"
 #include <d3dx12/d3dx12.h>
 #include <gimslib/contrib/stb/stb_image.h>
@@ -22,6 +23,7 @@ SceneGraphViewerApp::SceneGraphViewerApp(const DX12AppConfig config, const std::
   m_examinerController.setTranslationVector(gims::f32v3(0, -0.25f, 1.5));
   createRootSignature();
   createSceneConstantBuffer();
+  createScenePerMeshConstantBuffer();
   createPipeline();
 }
 
@@ -164,9 +166,14 @@ void SceneGraphViewerApp::createPipeline()
 
 void SceneGraphViewerApp::drawScene(const ComPtr<ID3D12GraphicsCommandList>& cmdLst)
 {
-  updateSceneConstantBuffer();
+  
   const auto cb           = m_constantBuffers[getFrameIndex()].getResource()->GetGPUVirtualAddress();
+  const auto mcb           = m_perMeshConstantBuffers[getFrameIndex()].getResource()->GetGPUVirtualAddress();
   const auto cameraMatrix = m_examinerController.getTransformationMatrix();
+
+  updateSceneConstantBuffer();
+  
+
 
   // Assignment 6
 
@@ -177,9 +184,15 @@ void SceneGraphViewerApp::drawScene(const ComPtr<ID3D12GraphicsCommandList>& cmd
 
   m_scene.addToCommandList(cmdLst, cameraMatrix, 1, 2, 3);
 
-  gims::ui32 meshNumber = m_scene.getNumberOfMeshes();
+  gims::ui32 meshNumber = 1;//m_scene.getNumberOfMeshes();
   for (gims::ui32 meshIndex = 0; meshIndex < meshNumber; meshIndex++)
   {
+    const auto modelMatrix = m_scene.getMesh(meshIndex)
+                                 .getAABB()
+                                 .getNormalizationTransformation();
+    const auto mv = cameraMatrix * modelMatrix;
+    cmdLst->SetGraphicsRootConstantBufferView(1, mcb);
+    updatePerMeshConstantBuffer(mv);
     m_scene.getMesh(meshIndex).addToCommandList(cmdLst);
   }
 }
@@ -195,10 +208,29 @@ void SceneGraphViewerApp::createSceneConstantBuffer()
   }
 }
 
+void SceneGraphViewerApp::createScenePerMeshConstantBuffer()
+{
+  const PerMeshConstantBuffer mcb         = {};
+  const gims::ui64     frameCount = getDX12AppConfig().frameCount;
+  m_perMeshConstantBuffers.resize(frameCount);
+  for (gims::ui32 i = 0; i < frameCount; i++)
+  {
+    m_perMeshConstantBuffers[i] = ConstantBufferD3D12(mcb, getDevice());
+  }
+}
+
 void SceneGraphViewerApp::updateSceneConstantBuffer()
 {
   ConstantBuffer cb   = {};
   cb.projectionMatrix = glm::perspectiveFovLH_ZO<gims::f32>(glm::radians(45.0f), (gims::f32)getWidth(),
                                                             (gims::f32)getHeight(), 1.0f / 256.0f, 256.0f);
   m_constantBuffers[getFrameIndex()].upload(&cb);
+}
+
+void SceneGraphViewerApp::updatePerMeshConstantBuffer(gims::f32m4 mv)
+{
+  PerMeshConstantBuffer mcb = {};
+  mcb.modelViewMatrix = mv;
+
+  m_perMeshConstantBuffers[getFrameIndex()].upload(&mcb);
 }

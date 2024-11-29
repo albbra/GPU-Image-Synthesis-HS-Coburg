@@ -19,6 +19,7 @@ set(SOURCES "./src/main.cpp"
 								"./include/MaterialConstantBufferStruct.h"
 								"./include/MaterialStruct.h"
 								"./include/ConstantBufferStruct.h"
+								"./include/PerMeshConstantBufferStruct.h"
 								"./include/UiDataStruct.h")
 
 set(SHADERS "./shaders/TriangleMesh.hlsl")

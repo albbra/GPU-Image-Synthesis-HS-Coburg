@@ -305,7 +305,7 @@ void MeshViewer::loadTexture()
 void MeshViewer::createConstantBuffer()
 {
   f32m4 viewMatrix                          = m_examinerController.getTransformationMatrix();
-  m_perFrameData.mvp                        = viewMatrix * m_normalizationTransformation;
+  //m_perFrameData.mvp                        = viewMatrix * m_normalizationTransformation;
   m_perFrameData.ambientColor               = f32v4(0.1f, 0.1f, 0.1f, 1.0f);
   m_perFrameData.diffuseColor               = f32v4(0.8f, 0.8f, 0.8f, 1.0f);
   m_perFrameData.specularColor_and_Exponent = f32v4(1.0f, 1.0f, 1.0f, 32.0f);
@@ -318,8 +318,8 @@ void MeshViewer::createConstantBuffer()
 
   m_projection = getScaledProjectionMatrix();
 
-  m_perFrameData.mvp = m_projection * m_view * glm::mat4(1.0f);
   m_perFrameData.mv  = m_view * glm::mat4(1.0f);
+  m_perFrameData.mvp = m_projection * m_perFrameData.mv;
 
   // Set additional per-frame constants
   m_perFrameData.specularColor_and_Exponent = {1.0f, 1.0f, 1.0f, 32.0f};
@@ -471,7 +471,7 @@ void MeshViewer::setPerFrameData(gims::f32m4& newTransformationMatrix)
 {
   m_projection = getScaledProjectionMatrix();
 
-  m_perFrameData.mvp                        = m_projection * m_view * newTransformationMatrix;
+  m_perFrameData.mvp                        = m_projection * m_view * newTransformationMatrix * m_normalizationTransformation;
   m_perFrameData.mv                         = m_view * newTransformationMatrix;
   m_perFrameData.specularColor_and_Exponent = {m_uiData.specularColor, m_uiData.exponent};
   m_perFrameData.ambientColor               = {m_uiData.ambientColor, 1.0f};

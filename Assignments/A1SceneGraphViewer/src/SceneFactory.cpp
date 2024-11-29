@@ -8,7 +8,6 @@
 #include <gimslib/d3d/UploadHelper.hpp>
 #include <gimslib/dbg/HrException.hpp>
 #include <iostream>
-#include <stack>
 
 /// <summary>
 /// Converts the index buffer required for D3D12 renndering from an aiMesh.
@@ -222,7 +221,7 @@ void SceneGraphFactory::createMeshes(aiScene const* const                       
     // Create TriangleMeshD3D12 and add it to the scene's mesh list
     TriangleMeshD3D12 triangleMesh(positions.data(), normals.data(), texCoords.data(),
                                    static_cast<gims::ui32>(positions.size()), indices.data(),
-                                   static_cast<gims::ui32>(indices.size()), materialIndex, device, commandQueue);
+                                   static_cast<gims::ui32>(indices.size() * 3), materialIndex, device, commandQueue);
 
     outputScene.m_meshes.push_back(std::move(triangleMesh));
   }
