@@ -7,9 +7,9 @@
 #include <unordered_map>
 
 void static addToCommandListImpl(Scene& scene, gims::ui32 nodeIdx, gims::f32m4 transformation,
-                          const Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>& commandList,
-                          gims::ui32 modelViewRootParameterIdx, gims::ui32 materialConstantsRootParameterIdx,
-                          gims::ui32 srvRootParameterIdx)
+                                 const Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>& commandList,
+                                 gims::ui32 modelViewRootParameterIdx, gims::ui32 materialConstantsRootParameterIdx,
+                                 gims::ui32 srvRootParameterIdx)
 {
 
   if (nodeIdx >= scene.getNumberOfNodes())
@@ -23,7 +23,17 @@ void static addToCommandListImpl(Scene& scene, gims::ui32 nodeIdx, gims::f32m4 t
   for (gims::ui32 i = 0; i < currentNode.meshIndices.size(); i++)
   {
     commandList->SetGraphicsRoot32BitConstants(modelViewRootParameterIdx, 16, &accumulatedTransformation, 0);
-    scene.getMesh(currentNode.meshIndices[i]).addToCommandList(commandList);
+
+    TriangleMeshD3D12 currMesh      = scene.getMesh(currentNode.meshIndices[i]);
+    gims::ui32        materialIndex = currMesh.getMaterialIndex();
+
+    Material currMaterial = scene.getMaterial(materialIndex);
+
+    const D3D12_GPU_VIRTUAL_ADDRESS cmb = currMaterial.materialConstantBuffer.getResource()->GetGPUVirtualAddress();
+
+    commandList->SetGraphicsRootConstantBufferView(materialConstantsRootParameterIdx, cmb);
+
+    currMesh.addToCommandList(commandList);
   }
 
   for (const gims::ui32& nodeIndex : currentNode.childIndices)
@@ -76,6 +86,6 @@ void Scene::addToCommandList(const Microsoft::WRL::ComPtr<ID3D12GraphicsCommandL
                              const gims::f32m4 transformation, gims::ui32 modelViewRootParameterIdx,
                              gims::ui32 materialConstantsRootParameterIdx, gims::ui32 srvRootParameterIdx)
 {
-  addToCommandListImpl(*this, 0, transformation, commandList, modelViewRootParameterIdx, materialConstantsRootParameterIdx,
-                       srvRootParameterIdx);
+  addToCommandListImpl(*this, 0, transformation, commandList, modelViewRootParameterIdx,
+                       materialConstantsRootParameterIdx, srvRootParameterIdx);
 }

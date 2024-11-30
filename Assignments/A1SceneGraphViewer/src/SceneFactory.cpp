@@ -308,11 +308,13 @@ void SceneGraphFactory::computeSceneAABB(Scene& scene, AABB& aabb, gims::ui32 no
     const gims::f32v3& lowerLeft  = aabb.getLowerLeftBottom();
     const gims::f32v3& upperRight = aabb.getUpperRightTop();
 
+    //Debug Ausgabe
     std::cout << "AABB Lower Left Bottom: (" << lowerLeft.x << ", " << lowerLeft.y << ", " << lowerLeft.z << ")"
               << std::endl;
 
     std::cout << "AABB Upper Right Top: (" << upperRight.x << ", " << upperRight.y << ", " << upperRight.z << ")"
               << std::endl;
+    std::cout << "\n";
   }
 }
 
@@ -334,11 +336,60 @@ void SceneGraphFactory::createMaterials(
     std::unordered_map<std::filesystem::path, gims::ui32> textureFileNameToTextureIndex,
     const Microsoft::WRL::ComPtr<ID3D12Device>& device, Scene& outputScene)
 {
-  (void)inputScene;
-  (void)textureFileNameToTextureIndex;
-  (void)device;
-  (void)outputScene;
-  // Assignment 7
+  if (!inputScene)
+  {
+    throw std::runtime_error("Invalid input scene provided.");
+  }
+
+  // Iterate over all materials in the input scene
+  for (unsigned int i = 0; i < inputScene->mNumMaterials; ++i)
+  {
+    const aiMaterial* aiMat = inputScene->mMaterials[i];
+
+    // Extract material properties
+    gims::f32v4 ambientColor(0.0f), diffuseColor(0.0f), specularColorAndExponent(0.0f);
+    float       specularExponent = 1.0f;
+
+    aiColor4D aiAmbient, aiDiffuse, aiSpecular;
+    if (AI_SUCCESS == aiGetMaterialColor(aiMat, AI_MATKEY_COLOR_AMBIENT, &aiAmbient))
+    {
+      ambientColor = gims::f32v4(aiAmbient.r, aiAmbient.g, aiAmbient.b, aiAmbient.a);
+    }
+    if (AI_SUCCESS == aiGetMaterialColor(aiMat, AI_MATKEY_COLOR_DIFFUSE, &aiDiffuse))
+    {
+      diffuseColor = gims::f32v4(aiDiffuse.r, aiDiffuse.g, aiDiffuse.b, aiDiffuse.a);
+    }
+    if (AI_SUCCESS == aiGetMaterialColor(aiMat, AI_MATKEY_COLOR_SPECULAR, &aiSpecular))
+    {
+      specularColorAndExponent = gims::f32v4(aiSpecular.r, aiSpecular.g, aiSpecular.b, 0.0f);
+    }
+    if (AI_SUCCESS == aiGetMaterialFloat(aiMat, AI_MATKEY_SHININESS, &specularExponent))
+    {
+      specularColorAndExponent.w = specularExponent;
+    }
+
+    //Debug Ausgabe
+    std::cout << "Material " << i << "\n";
+    std::cout << "AmbientColor: " << ambientColor.r << " " << ambientColor.g << " " << ambientColor.b << " " << ambientColor.a << "\n";
+    std::cout << "DiffuseColor: " << diffuseColor.r << " " << diffuseColor.g << " " << diffuseColor.b << " " << diffuseColor.a << "\n";
+    std::cout << "SpecularColorAndExponent: " << specularColorAndExponent.r << " " << specularColorAndExponent.g << " " << specularColorAndExponent.b
+              << " " << specularColorAndExponent.a << "\n";
+    std::cout << "\n";
+
+    // Prepare the material constant buffer
+    MaterialConstantBuffer materialBuffer   = {};
+    materialBuffer.ambientColor             = ambientColor;
+    materialBuffer.diffuseColor             = diffuseColor;
+    materialBuffer.specularColorAndExponent = specularColorAndExponent;
+
+    // Create a GPU constant buffer for this material
+    Material material;
+    material.materialConstantBuffer = ConstantBufferD3D12(materialBuffer, device);
+
+    // Add the material to the scene's material list
+    outputScene.m_materials.push_back(material);
+  }
+
   // Assignment 9
   // Assignment 10
 }
