@@ -38,6 +38,7 @@ cbuffer Material : register(b2)
 {
     float4 ambientColor;
     float4 diffuseColor;
+    float4 emissiveColor;
     float4 specularColorAndExponent;
 }
 

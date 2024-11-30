@@ -308,7 +308,7 @@ void SceneGraphFactory::computeSceneAABB(Scene& scene, AABB& aabb, gims::ui32 no
     const gims::f32v3& lowerLeft  = aabb.getLowerLeftBottom();
     const gims::f32v3& upperRight = aabb.getUpperRightTop();
 
-    //Debug Ausgabe
+    // Debug Ausgabe
     std::cout << "AABB Lower Left Bottom: (" << lowerLeft.x << ", " << lowerLeft.y << ", " << lowerLeft.z << ")"
               << std::endl;
 
@@ -347,10 +347,17 @@ void SceneGraphFactory::createMaterials(
     const aiMaterial* aiMat = inputScene->mMaterials[i];
 
     // Extract material properties
-    gims::f32v4 ambientColor(0.0f), diffuseColor(0.0f), specularColorAndExponent(0.0f);
+    gims::f32v4 ambientColor(0.0f);
+    gims::f32v4 diffuseColor(0.0f);
+    gims::f32v4 emissiveColor(0.0f);
+    gims::f32v4 specularColorAndExponent(0.0f);
     float       specularExponent = 1.0f;
 
-    aiColor4D aiAmbient, aiDiffuse, aiSpecular;
+    aiColor4D aiAmbient;
+    aiColor4D aiDiffuse;
+    aiColor4D aiEmissive;
+    aiColor4D aiSpecular;
+
     if (AI_SUCCESS == aiGetMaterialColor(aiMat, AI_MATKEY_COLOR_AMBIENT, &aiAmbient))
     {
       ambientColor = gims::f32v4(aiAmbient.r, aiAmbient.g, aiAmbient.b, aiAmbient.a);
@@ -358,6 +365,10 @@ void SceneGraphFactory::createMaterials(
     if (AI_SUCCESS == aiGetMaterialColor(aiMat, AI_MATKEY_COLOR_DIFFUSE, &aiDiffuse))
     {
       diffuseColor = gims::f32v4(aiDiffuse.r, aiDiffuse.g, aiDiffuse.b, aiDiffuse.a);
+    }
+    if (AI_SUCCESS == aiGetMaterialColor(aiMat, AI_MATKEY_COLOR_EMISSIVE, &aiEmissive))
+    {
+      emissiveColor = gims::f32v4(aiEmissive.r, aiEmissive.g, aiEmissive.b, aiEmissive.a);
     }
     if (AI_SUCCESS == aiGetMaterialColor(aiMat, AI_MATKEY_COLOR_SPECULAR, &aiSpecular))
     {
@@ -368,18 +379,23 @@ void SceneGraphFactory::createMaterials(
       specularColorAndExponent.w = specularExponent;
     }
 
-    //Debug Ausgabe
+    // Debug Ausgabe
     std::cout << "Material " << i << "\n";
-    std::cout << "AmbientColor: " << ambientColor.r << " " << ambientColor.g << " " << ambientColor.b << " " << ambientColor.a << "\n";
-    std::cout << "DiffuseColor: " << diffuseColor.r << " " << diffuseColor.g << " " << diffuseColor.b << " " << diffuseColor.a << "\n";
-    std::cout << "SpecularColorAndExponent: " << specularColorAndExponent.r << " " << specularColorAndExponent.g << " " << specularColorAndExponent.b
-              << " " << specularColorAndExponent.a << "\n";
+    std::cout << "AmbientColor: " << ambientColor.r << " " << ambientColor.g << " " << ambientColor.b << " "
+              << ambientColor.a << "\n";
+    std::cout << "DiffuseColor: " << diffuseColor.r << " " << diffuseColor.g << " " << diffuseColor.b << " "
+              << diffuseColor.a << "\n";
+    std::cout << "EmissiveColor: " << emissiveColor.r << " " << emissiveColor.g << " " << emissiveColor.b << " "
+              << emissiveColor.a << "\n";
+    std::cout << "SpecularColorAndExponent: " << specularColorAndExponent.r << " " << specularColorAndExponent.g << " "
+              << specularColorAndExponent.b << " " << specularColorAndExponent.a << "\n";
     std::cout << "\n";
 
     // Prepare the material constant buffer
     MaterialConstantBuffer materialBuffer   = {};
     materialBuffer.ambientColor             = ambientColor;
     materialBuffer.diffuseColor             = diffuseColor;
+    materialBuffer.emissionColor            = emissiveColor;
     materialBuffer.specularColorAndExponent = specularColorAndExponent;
 
     // Create a GPU constant buffer for this material
