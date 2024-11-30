@@ -23,7 +23,6 @@ SceneGraphViewerApp::SceneGraphViewerApp(const DX12AppConfig config, const std::
   m_examinerController.setTranslationVector(gims::f32v3(0, -0.25f, 1.5));
   createRootSignature();
   createSceneConstantBuffer();
-  createScenePerMeshConstantBuffer();
   createPipeline();
 }
 
@@ -65,7 +64,8 @@ void SceneGraphViewerApp::onDraw()
 
 void SceneGraphViewerApp::onDrawUI()
 {
-  const ImGuiWindowFlags_ imGuiFlags = m_examinerController.active() ? ImGuiWindowFlags_NoInputs : ImGuiWindowFlags_None;
+  const ImGuiWindowFlags_ imGuiFlags =
+      m_examinerController.active() ? ImGuiWindowFlags_NoInputs : ImGuiWindowFlags_None;
   ImGui::Begin("Information", nullptr, imGuiFlags);
   ImGui::Text("Frametime: %f", 1.0f / ImGui::GetIO().Framerate * 1000.0f);
   ImGui::End();
@@ -81,7 +81,7 @@ void SceneGraphViewerApp::createRootSignature()
 
   // Initialize as constant buffer views (cbv) for b0, b1, and b2
   rootParameters[0].InitAsConstantBufferView(0); // PerFrameConstants (b0)
-  rootParameters[1].InitAsConstantBufferView(1); // PerMeshConstants (b1)
+  rootParameters[1].InitAsConstants(16, 1); // PerMeshConstants (b1)
   rootParameters[2].InitAsConstantBufferView(2); // Material (b2)
 
   // Descriptor table for the texture SRVs (t0-t4)
@@ -165,31 +165,19 @@ void SceneGraphViewerApp::createPipeline()
 void SceneGraphViewerApp::drawScene(const ComPtr<ID3D12GraphicsCommandList>& cmdLst)
 {
 
-  const D3D12_GPU_VIRTUAL_ADDRESS cb           = m_constantBuffers[getFrameIndex()].getResource()->GetGPUVirtualAddress();
-  const D3D12_GPU_VIRTUAL_ADDRESS mcb          = m_perMeshConstantBuffers[getFrameIndex()].getResource()->GetGPUVirtualAddress();
-  const gims::f32m4 cameraMatrix = m_examinerController.getTransformationMatrix();
+  const D3D12_GPU_VIRTUAL_ADDRESS cb  = m_constantBuffers[getFrameIndex()].getResource()->GetGPUVirtualAddress();
+  const gims::f32m4               cameraMatrix = m_examinerController.getTransformationMatrix();
 
   updateSceneConstantBuffer();
-
-  // Assignment 6
 
   cmdLst->SetPipelineState(m_pipelineState.Get());
 
   cmdLst->SetGraphicsRootSignature(m_rootSignature.Get());
   cmdLst->SetGraphicsRootConstantBufferView(0, cb);
 
-  m_scene.addToCommandList(cmdLst, cameraMatrix, 1, 2, 3);
+  gims::f32m4 normalizedSceneTransform = m_scene.getAABB().getNormalizationTransformation();
 
-  cmdLst->SetGraphicsRootConstantBufferView(1, mcb);
-
-  gims::ui32 meshNumber = 1; // m_scene.getNumberOfMeshes();
-  for (gims::ui32 meshIndex = 0; meshIndex < meshNumber; meshIndex++)
-  {
-    const gims::f32m4 modelMatrix = m_scene.getMesh(meshIndex).getAABB().getNormalizationTransformation();
-    const gims::f32m4 mv          = cameraMatrix * modelMatrix;
-    updatePerMeshConstantBuffer(mv);
-    m_scene.getMesh(meshIndex).addToCommandList(cmdLst);
-  }
+  m_scene.addToCommandList(cmdLst, cameraMatrix * normalizedSceneTransform, 1, 2, 3);
 }
 
 void SceneGraphViewerApp::createSceneConstantBuffer()
@@ -203,29 +191,10 @@ void SceneGraphViewerApp::createSceneConstantBuffer()
   }
 }
 
-void SceneGraphViewerApp::createScenePerMeshConstantBuffer()
-{
-  const PerMeshConstantBuffer mcb        = {};
-  const gims::ui64            frameCount = getDX12AppConfig().frameCount;
-  m_perMeshConstantBuffers.resize(frameCount);
-  for (gims::ui32 i = 0; i < frameCount; i++)
-  {
-    m_perMeshConstantBuffers[i] = ConstantBufferD3D12(mcb, getDevice());
-  }
-}
-
 void SceneGraphViewerApp::updateSceneConstantBuffer()
 {
   ConstantBuffer cb   = {};
   cb.projectionMatrix = glm::perspectiveFovLH_ZO<gims::f32>(glm::radians(45.0f), (gims::f32)getWidth(),
                                                             (gims::f32)getHeight(), 1.0f / 256.0f, 256.0f);
   m_constantBuffers[getFrameIndex()].upload(&cb);
-}
-
-void SceneGraphViewerApp::updatePerMeshConstantBuffer(gims::f32m4 mv)
-{
-  PerMeshConstantBuffer mcb = {};
-  mcb.modelViewMatrix       = mv;
-
-  m_perMeshConstantBuffers[getFrameIndex()].upload(&mcb);
 }

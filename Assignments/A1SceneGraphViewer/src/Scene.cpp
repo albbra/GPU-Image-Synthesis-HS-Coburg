@@ -1,26 +1,40 @@
 // Scene.cpp
 
 #include "Scene.hpp"
+#include "ConstantBufferD3D12.hpp"
+#include "PerMeshConstantBufferStruct.h"
 #include <d3dx12/d3dx12.h>
 #include <unordered_map>
 
 void static addToCommandListImpl(Scene& scene, gims::ui32 nodeIdx, gims::f32m4 transformation,
-                                 const Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>& commandList,
-                                 gims::ui32 modelViewRootParameterIdx, gims::ui32 materialConstantsRootParameterIdx,
-                                 gims::ui32 srvRootParameterIdx)
+                          const Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>& commandList,
+                          gims::ui32 modelViewRootParameterIdx, gims::ui32 materialConstantsRootParameterIdx,
+                          gims::ui32 srvRootParameterIdx)
 {
-  (void)scene;
-  (void)nodeIdx;
-  (void)transformation;
-  (void)commandList;
-  (void)modelViewRootParameterIdx;
-  (void)materialConstantsRootParameterIdx;
-  (void)srvRootParameterIdx;
-  // Assignemt 6
-  
 
+  if (nodeIdx >= scene.getNumberOfNodes())
+  {
+    return;
+  }
+
+  Node        currentNode               = scene.getNode(nodeIdx);
+  gims::f32m4 accumulatedTransformation = transformation * currentNode.transformation;
+
+  for (gims::ui32 i = 0; i < currentNode.meshIndices.size(); i++)
+  {
+    commandList->SetGraphicsRoot32BitConstants(modelViewRootParameterIdx, 16, &accumulatedTransformation, 0);
+    scene.getMesh(currentNode.meshIndices[i]).addToCommandList(commandList);
+  }
+
+  for (const gims::ui32& nodeIndex : currentNode.childIndices)
+  {
+    addToCommandListImpl(scene, nodeIndex, accumulatedTransformation, commandList, modelViewRootParameterIdx,
+                         materialConstantsRootParameterIdx, srvRootParameterIdx);
+  }
 
   // Assignment 10
+  (void)materialConstantsRootParameterIdx;
+  (void)srvRootParameterIdx;
 }
 
 const Node& Scene::getNode(gims::ui32 nodeIdx) const
@@ -62,6 +76,6 @@ void Scene::addToCommandList(const Microsoft::WRL::ComPtr<ID3D12GraphicsCommandL
                              const gims::f32m4 transformation, gims::ui32 modelViewRootParameterIdx,
                              gims::ui32 materialConstantsRootParameterIdx, gims::ui32 srvRootParameterIdx)
 {
-  addToCommandListImpl(*this, 0, transformation, commandList, modelViewRootParameterIdx,
-                       materialConstantsRootParameterIdx, srvRootParameterIdx);
+  addToCommandListImpl(*this, 0, transformation, commandList, modelViewRootParameterIdx, materialConstantsRootParameterIdx,
+                       srvRootParameterIdx);
 }

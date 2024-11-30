@@ -50,16 +50,12 @@ private:
   void drawScene(const ComPtr<ID3D12GraphicsCommandList>& commandList);
 
   void createSceneConstantBuffer();
-  void createScenePerMeshConstantBuffer();
 
   void updateSceneConstantBuffer();
-  void updatePerMeshConstantBuffer(gims::f32m4 mv);
-
 
   ComPtr<ID3D12PipelineState>      m_pipelineState;
   ComPtr<ID3D12RootSignature>      m_rootSignature;
   std::vector<ConstantBufferD3D12> m_constantBuffers;
-  std::vector<ConstantBufferD3D12> m_perMeshConstantBuffers;
   gims::ExaminerController         m_examinerController;
   Scene                            m_scene;
   UiData                           m_uiData;

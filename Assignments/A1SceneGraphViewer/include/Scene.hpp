@@ -68,8 +68,7 @@ public:
   /// </summary>
   /// <param name="commandList">The command list to which the commands will be added.</param>
   /// <param name="viewMatrix">The view matrix (or camera matrix).</param>
-  /// <param name="modelViewRootParameterIdx">>In your root signature, reserve 16 floats for root constants
-  /// which obtain the model view matrix.</param>
+  /// <param name="perMeshCBVAddress">></param>
   /// <param name="materialConstantsRootParameterIdx">In your root signature, the parameter index of the material
   /// constant buffer.</param>
   /// <param name="srvRootParameterIdx">In your root signature the paramer index of the Shader-Resource-View For the
