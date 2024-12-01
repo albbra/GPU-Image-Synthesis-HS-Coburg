@@ -81,7 +81,7 @@ void SceneGraphViewerApp::createRootSignature()
 
   // Initialize as constant buffer views (cbv) for b0, b1, and b2
   rootParameters[0].InitAsConstantBufferView(0); // PerFrameConstants (b0)
-  rootParameters[1].InitAsConstants(16, 1); // PerMeshConstants (b1)
+  rootParameters[1].InitAsConstants(16, 1);      // PerMeshConstants (b1)
   rootParameters[2].InitAsConstantBufferView(2); // Material (b2)
 
   // Descriptor table for the texture SRVs (t0-t4)
@@ -91,10 +91,19 @@ void SceneGraphViewerApp::createRootSignature()
 
   // Initialize the sampler (s0)
   CD3DX12_STATIC_SAMPLER_DESC samplerDesc(0);
-  samplerDesc.Filter   = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
-  samplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-  samplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-  samplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+  samplerDesc.Filter           = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+  samplerDesc.AddressU         = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+  samplerDesc.AddressV         = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+  samplerDesc.AddressW         = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+  samplerDesc.MipLODBias       = 0;
+  samplerDesc.MaxAnisotropy    = 0;
+  samplerDesc.ComparisonFunc   = D3D12_COMPARISON_FUNC_NEVER;
+  samplerDesc.BorderColor      = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
+  samplerDesc.MinLOD           = 0.0f;
+  samplerDesc.MaxLOD           = D3D12_FLOAT32_MAX;
+  samplerDesc.ShaderRegister   = 0;
+  samplerDesc.RegisterSpace    = 0;
+  samplerDesc.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
   // Build the root signature description
   CD3DX12_ROOT_SIGNATURE_DESC descRootSignature = {};
@@ -165,7 +174,7 @@ void SceneGraphViewerApp::createPipeline()
 void SceneGraphViewerApp::drawScene(const ComPtr<ID3D12GraphicsCommandList>& cmdLst)
 {
 
-  const D3D12_GPU_VIRTUAL_ADDRESS cb  = m_constantBuffers[getFrameIndex()].getResource()->GetGPUVirtualAddress();
+  const D3D12_GPU_VIRTUAL_ADDRESS cb = m_constantBuffers[getFrameIndex()].getResource()->GetGPUVirtualAddress();
   const gims::f32m4               cameraMatrix = m_examinerController.getTransformationMatrix();
 
   updateSceneConstantBuffer();

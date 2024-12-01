@@ -17,23 +17,24 @@ void static addToCommandListImpl(Scene& scene, gims::ui32 nodeIdx, gims::f32m4 t
     return;
   }
 
-  Node        currentNode               = scene.getNode(nodeIdx);
-  gims::f32m4 accumulatedTransformation = transformation * currentNode.transformation;
+  Node currentNode               = scene.getNode(nodeIdx);
+  gims::f32m4       accumulatedTransformation =
+      transformation * currentNode.transformation;
 
   for (gims::ui32 i = 0; i < currentNode.meshIndices.size(); i++)
   {
     commandList->SetGraphicsRoot32BitConstants(modelViewRootParameterIdx, 16, &accumulatedTransformation, 0);
+    commandList->SetGraphicsRootConstantBufferView(
+        materialConstantsRootParameterIdx,
+        scene.getMaterial(scene.getMesh(currentNode.meshIndices[i]).getMaterialIndex())
+                                 .materialConstantBuffer.getResource()
+                                 ->GetGPUVirtualAddress());
+    commandList->SetDescriptorHeaps(1, scene.getMaterial(scene.getMesh(currentNode.meshIndices[i]).getMaterialIndex()).srvDescriptorHeap.GetAddressOf());
+    commandList->SetGraphicsRootDescriptorTable(
+        srvRootParameterIdx, scene.getMaterial(scene.getMesh(currentNode.meshIndices[i]).getMaterialIndex())
+               .srvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
 
-    TriangleMeshD3D12 currMesh      = scene.getMesh(currentNode.meshIndices[i]);
-    gims::ui32        materialIndex = currMesh.getMaterialIndex();
-
-    Material currMaterial = scene.getMaterial(materialIndex);
-
-    const D3D12_GPU_VIRTUAL_ADDRESS cmb = currMaterial.materialConstantBuffer.getResource()->GetGPUVirtualAddress();
-
-    commandList->SetGraphicsRootConstantBufferView(materialConstantsRootParameterIdx, cmb);
-
-    currMesh.addToCommandList(commandList);
+    scene.getMesh(currentNode.meshIndices[i]).addToCommandList(commandList);
   }
 
   for (const gims::ui32& nodeIndex : currentNode.childIndices)
@@ -41,10 +42,6 @@ void static addToCommandListImpl(Scene& scene, gims::ui32 nodeIdx, gims::f32m4 t
     addToCommandListImpl(scene, nodeIndex, accumulatedTransformation, commandList, modelViewRootParameterIdx,
                          materialConstantsRootParameterIdx, srvRootParameterIdx);
   }
-
-  // Assignment 10
-  (void)materialConstantsRootParameterIdx;
-  (void)srvRootParameterIdx;
 }
 
 const Node& Scene::getNode(gims::ui32 nodeIdx) const

@@ -66,6 +66,10 @@ VertexShaderOutput VS_main(VertexInput input)
 float4 PS_main(VertexShaderOutput input)
     : SV_TARGET
 {
-  //return float4(input.viewSpaceNormal.x, input.texCoord.y, 0.0f, 1.0f);
-    return float4(input.texCoord, 0.0f, 1.0f);
+    float3 sampledAmbientColor = g_textureAmbient.Sample(g_sampler, input.texCoord, 0);
+    float3 sampledDiffuseColor = g_textureDiffuse.Sample(g_sampler, input.texCoord, 0);
+    float3 sampledSpecularColor = g_textureSpecular.Sample(g_sampler, input.texCoord, 0);
+    float3 sampledEmissiveColor = g_textureEmissive.Sample(g_sampler, input.texCoord, 0);
+    float3 sampledNormalas = g_textureNormal.Sample(g_sampler, input.texCoord, 0);
+    return float4(sampledNormalas, 1.0f);
 }

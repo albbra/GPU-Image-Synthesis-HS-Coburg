@@ -80,6 +80,7 @@ std::unordered_map<std::filesystem::path, gims::ui32> static textureFilenameToIn
   }
   return textureFileNameToTextureIndex;
 }
+
 /// <summary>
 /// Reads the color from the Asset Importer specific (pKey, type, idx) triple.
 /// Use the Asset Importer Macros AI_MATKEY_COLOR_AMBIENT, AI_MATKEY_COLOR_DIFFUSE, etc. which map to these arguments
@@ -106,27 +107,45 @@ gims::f32v4 static getColor(char const* const pKey, unsigned int type, unsigned 
   }
 }
 
-static gims::f32m4 convertAssimpMatrixToGims(const aiMatrix4x4& assimpMatrix)
+gims::f32m4 static convertAssimpMatrixToGims(const aiMatrix4x4& assimpMatrix)
 {
-  gims::f32m4 gimsMatrix = {};
-  // Assimp matrices are row-major; gims::f32m4 is column-major.
-  gimsMatrix[0][0] = assimpMatrix.a1;
-  gimsMatrix[1][0] = assimpMatrix.a2;
-  gimsMatrix[2][0] = assimpMatrix.a3;
-  gimsMatrix[3][0] = assimpMatrix.a4;
-  gimsMatrix[0][1] = assimpMatrix.b1;
-  gimsMatrix[1][1] = assimpMatrix.b2;
-  gimsMatrix[2][1] = assimpMatrix.b3;
-  gimsMatrix[3][1] = assimpMatrix.b4;
-  gimsMatrix[0][2] = assimpMatrix.c1;
-  gimsMatrix[1][2] = assimpMatrix.c2;
-  gimsMatrix[2][2] = assimpMatrix.c3;
-  gimsMatrix[3][2] = assimpMatrix.c4;
-  gimsMatrix[0][3] = assimpMatrix.d1;
-  gimsMatrix[1][3] = assimpMatrix.d2;
-  gimsMatrix[2][3] = assimpMatrix.d3;
-  gimsMatrix[3][3] = assimpMatrix.d4;
-  return gimsMatrix;
+  return glm::transpose(glm::make_mat4(&assimpMatrix.a1));
+}
+
+gims::i32 static getTexture(aiTextureType textureType, unsigned int textureIndex, aiMaterial const* const material,
+                            std::unordered_map<std::filesystem::path, gims::ui32> textureFileNameToTextureIndex)
+{
+  gims::i32 defaultTextureIndexToReturn = 0;
+  aiString  textureName("");
+  aiReturn  textureRetrievingResult = material->GetTexture(textureType, textureIndex, &textureName);
+  if (textureRetrievingResult == aiReturn_FAILURE)
+  {
+    if (textureType == aiTextureType_AMBIENT)
+    {
+      defaultTextureIndexToReturn = 1;
+    }
+    else if (textureType == aiTextureType_DIFFUSE)
+    {
+      defaultTextureIndexToReturn = 0;
+    }
+    else if (textureType == aiTextureType_SPECULAR)
+    {
+      defaultTextureIndexToReturn = 1;
+    }
+    else if (textureType == aiTextureType_EMISSIVE)
+    {
+      defaultTextureIndexToReturn = 1;
+    }
+    else if (textureType == aiTextureType_HEIGHT)
+    {
+      defaultTextureIndexToReturn = 2;
+    }
+  }
+  else
+  {
+    defaultTextureIndexToReturn = textureFileNameToTextureIndex.find(textureName.C_Str())->second;
+  }
+  return defaultTextureIndexToReturn;
 }
 
 Scene SceneGraphFactory::createFromAssImpScene(const std::filesystem::path                       pathToScene,
@@ -323,12 +342,25 @@ void SceneGraphFactory::createTextures(
     std::filesystem::path parentPath, const Microsoft::WRL::ComPtr<ID3D12Device>& device,
     const Microsoft::WRL::ComPtr<ID3D12CommandQueue>& commandQueue, Scene& outputScene)
 {
-  (void)textureFileNameToTextureIndex;
-  (void)parentPath;
-  (void)device;
-  (void)commandQueue;
-  (void)outputScene;
-  // Assignment 9
+
+  gims::ui8v4 defaultWhiteTextureData(255, 255, 255, 255);
+  gims::ui8v4 defaultBlackTextureData(0, 0, 0, 255);
+  gims::ui8v4 defaultNormalMapTextureData(0, 0, 255, 255);
+
+  Texture2DD3D12 defaultWhiteTexture(&defaultWhiteTextureData, 1, 1, device, commandQueue);
+  Texture2DD3D12 defaultBlackTexture(&defaultBlackTextureData, 1, 1, device, commandQueue);
+  Texture2DD3D12 defaultNormalMapTexture(&defaultNormalMapTextureData, 1, 1, device, commandQueue);
+
+  outputScene.m_textures.resize(textureFileNameToTextureIndex.size() + 3);
+  outputScene.m_textures.at(0) = defaultWhiteTexture;
+  outputScene.m_textures.at(1) = defaultBlackTexture;
+  outputScene.m_textures.at(2) = defaultNormalMapTexture;
+
+  for (const auto& [textureRelativePath, textureIndex] : textureFileNameToTextureIndex)
+  {
+    Texture2DD3D12 textureToAdd((parentPath / textureRelativePath), device, commandQueue);
+    outputScene.m_textures.at(textureIndex) = textureToAdd;
+  }
 }
 
 void SceneGraphFactory::createMaterials(
@@ -342,9 +374,20 @@ void SceneGraphFactory::createMaterials(
   }
 
   // Iterate over all materials in the input scene
-  for (unsigned int i = 0; i < inputScene->mNumMaterials; ++i)
+  for (unsigned int index = 0; index < inputScene->mNumMaterials; ++index)
   {
-    const aiMaterial* aiMat = inputScene->mMaterials[i];
+    const aiMaterial* aiMat = inputScene->mMaterials[index];
+
+    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> srv;
+    D3D12_DESCRIPTOR_HEAP_DESC                   desc = {};
+    desc.Type                                         = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+    desc.NumDescriptors                               = 5;
+    desc.NodeMask                                     = 0;
+    desc.Flags                                        = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+    if (FAILED(device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&srv))))
+    {
+      throw std::runtime_error("Failed to create descriptor heap.");
+    }
 
     // Extract material properties
     gims::f32v4 ambientColor(0.0f);
@@ -353,34 +396,30 @@ void SceneGraphFactory::createMaterials(
     gims::f32v4 specularColorAndExponent(0.0f);
     float       specularExponent = 1.0f;
 
-    aiColor4D aiAmbient;
-    aiColor4D aiDiffuse;
-    aiColor4D aiEmissive;
-    aiColor4D aiSpecular;
+    ambientColor             = getColor(AI_MATKEY_COLOR_AMBIENT, aiMat);
+    diffuseColor             = getColor(AI_MATKEY_COLOR_DIFFUSE, aiMat);
+    emissiveColor            = getColor(AI_MATKEY_COLOR_EMISSIVE, aiMat);
+    specularColorAndExponent = getColor(AI_MATKEY_COLOR_SPECULAR, aiMat);
 
-    if (AI_SUCCESS == aiGetMaterialColor(aiMat, AI_MATKEY_COLOR_AMBIENT, &aiAmbient))
-    {
-      ambientColor = gims::f32v4(aiAmbient.r, aiAmbient.g, aiAmbient.b, aiAmbient.a);
-    }
-    if (AI_SUCCESS == aiGetMaterialColor(aiMat, AI_MATKEY_COLOR_DIFFUSE, &aiDiffuse))
-    {
-      diffuseColor = gims::f32v4(aiDiffuse.r, aiDiffuse.g, aiDiffuse.b, aiDiffuse.a);
-    }
-    if (AI_SUCCESS == aiGetMaterialColor(aiMat, AI_MATKEY_COLOR_EMISSIVE, &aiEmissive))
-    {
-      emissiveColor = gims::f32v4(aiEmissive.r, aiEmissive.g, aiEmissive.b, aiEmissive.a);
-    }
-    if (AI_SUCCESS == aiGetMaterialColor(aiMat, AI_MATKEY_COLOR_SPECULAR, &aiSpecular))
-    {
-      specularColorAndExponent = gims::f32v4(aiSpecular.r, aiSpecular.g, aiSpecular.b, 0.0f);
-    }
     if (AI_SUCCESS == aiGetMaterialFloat(aiMat, AI_MATKEY_SHININESS, &specularExponent))
     {
       specularColorAndExponent.w = specularExponent;
     }
 
+    gims::i32 ambientTextureIndex   = getTexture(aiTextureType_AMBIENT, 0, aiMat, textureFileNameToTextureIndex);
+    gims::i32 diffuseTextureIndex   = getTexture(aiTextureType_DIFFUSE, 0, aiMat, textureFileNameToTextureIndex);
+    gims::i32 specularTextureIndex  = getTexture(aiTextureType_SPECULAR, 0, aiMat, textureFileNameToTextureIndex);
+    gims::i32 emissiveTextureIndex  = getTexture(aiTextureType_EMISSIVE, 0, aiMat, textureFileNameToTextureIndex);
+    gims::i32 normalMapTextureIndex = getTexture(aiTextureType_HEIGHT, 0, aiMat, textureFileNameToTextureIndex);
+
+    outputScene.m_textures.at(ambientTextureIndex).addToDescriptorHeap(device, srv, 0);
+    outputScene.m_textures.at(diffuseTextureIndex).addToDescriptorHeap(device, srv, 1);
+    outputScene.m_textures.at(specularTextureIndex).addToDescriptorHeap(device, srv, 2);
+    outputScene.m_textures.at(emissiveTextureIndex).addToDescriptorHeap(device, srv, 3);
+    outputScene.m_textures.at(normalMapTextureIndex).addToDescriptorHeap(device, srv, 4);
+
     // Debug Ausgabe
-    std::cout << "Material " << i << "\n";
+    std::cout << "Material " << index << "\n";
     std::cout << "AmbientColor: " << ambientColor.r << " " << ambientColor.g << " " << ambientColor.b << " "
               << ambientColor.a << "\n";
     std::cout << "DiffuseColor: " << diffuseColor.r << " " << diffuseColor.g << " " << diffuseColor.b << " "
@@ -401,11 +440,9 @@ void SceneGraphFactory::createMaterials(
     // Create a GPU constant buffer for this material
     Material material;
     material.materialConstantBuffer = ConstantBufferD3D12(materialBuffer, device);
+    material.srvDescriptorHeap = srv;
 
     // Add the material to the scene's material list
     outputScene.m_materials.push_back(material);
   }
-
-  // Assignment 9
-  // Assignment 10
 }
