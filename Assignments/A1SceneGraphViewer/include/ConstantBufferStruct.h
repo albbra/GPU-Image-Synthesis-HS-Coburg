@@ -7,6 +7,9 @@
 struct ConstantBuffer
 {
   gims::f32m4 projectionMatrix;
+  gims::f32v3 cameraPosition;
+  gims::f32 pad;
+  gims::f32v3 lightPosition;
 };
 
 #endif // CONSTANT_BUFFER_STRUCT

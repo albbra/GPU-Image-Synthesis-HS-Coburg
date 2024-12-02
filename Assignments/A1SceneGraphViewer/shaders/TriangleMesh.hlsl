@@ -21,6 +21,10 @@ struct VertexShaderOutput
 cbuffer PerFrameConstants : register(b0)
 {
     float4x4 projectionMatrix;
+    float3   cameraPosition;
+    float    padding;
+    float3   lightPosition;
+
 }
 
 /// <summary>
@@ -66,10 +70,37 @@ VertexShaderOutput VS_main(VertexInput input)
 float4 PS_main(VertexShaderOutput input)
     : SV_TARGET
 {
-    float3 sampledAmbientColor = g_textureAmbient.Sample(g_sampler, input.texCoord, 0);
-    float3 sampledDiffuseColor = g_textureDiffuse.Sample(g_sampler, input.texCoord, 0);
+    float3 sampledAmbientColor  = g_textureAmbient.Sample(g_sampler, input.texCoord, 0);
+    float3 sampledDiffuseColor  = g_textureDiffuse.Sample(g_sampler, input.texCoord, 0);
     float3 sampledSpecularColor = g_textureSpecular.Sample(g_sampler, input.texCoord, 0);
     float3 sampledEmissiveColor = g_textureEmissive.Sample(g_sampler, input.texCoord, 0);
-    float3 sampledNormalas = g_textureNormal.Sample(g_sampler, input.texCoord, 0);
-    return float4(sampledNormalas, 1.0f);
+    float3 sampledNormals       = g_textureNormal.Sample(g_sampler, input.texCoord, 0);
+    
+    float3 mixedAmbientColor  = sampledAmbientColor * ambientColor.rgb;
+    float3 mixedDiffuseColor  = sampledDiffuseColor * diffuseColor.rgb;
+    float3 mixedSpecularColor = sampledSpecularColor * specularColorAndExponent.rgb;
+    float3 mixedEmissiveColor = sampledEmissiveColor * emissiveColor.rgb;
+    float  exponent           = specularColorAndExponent.a;
+    
+    //Test will be passed later
+    float3 lightColor      = (1.0f, 1.0f, 1.0f);
+    float  lightIntensity  = 1.0f;
+    
+    //Blinn-Phong-Belechtungsmodel
+    float3 viewDirection  = normalize(cameraPosition - input.viewSpacePosition);
+    float3 lightDirection = normalize(lightPosition - input.viewSpacePosition);
+    float3 normal         = normalize(input.viewSpaceNormal);
+
+    float3 ambientLighting = mixedAmbientColor;
+
+    float  diffuseFactor   = max(dot(normal, lightDirection), 0.0f);
+    float3 diffuseLighting = mixedDiffuseColor * lightColor * diffuseFactor;
+
+    float3 reflectionVector = reflect(-lightDirection, normal);
+    float  specularFactor   = pow(max(dot(reflectionVector, viewDirection), 0.0f), exponent);
+    float3 specularLighting = mixedSpecularColor * lightColor * specularFactor;
+
+    float3 finalColor = ambientLighting + lightIntensity * (diffuseLighting + specularLighting) + mixedEmissiveColor;
+    
+    return float4(finalColor.rgb, 1.0f);
 }

@@ -68,6 +68,8 @@ void SceneGraphViewerApp::onDrawUI()
       m_examinerController.active() ? ImGuiWindowFlags_NoInputs : ImGuiWindowFlags_None;
   ImGui::Begin("Information", nullptr, imGuiFlags);
   ImGui::Text("Frametime: %f", 1.0f / ImGui::GetIO().Framerate * 1000.0f);
+  gims::f32v3 cameraPosition = getCameraPosition();
+  ImGui::Text("Camera Position: (%.2f, %.2f, %.2f)", cameraPosition.x, cameraPosition.y, cameraPosition.z);
   ImGui::End();
   ImGui::Begin("Configuration", nullptr, imGuiFlags);
   ImGui::ColorEdit3("Background Color", &m_uiData.m_backgroundColor[0]);
@@ -205,5 +207,14 @@ void SceneGraphViewerApp::updateSceneConstantBuffer()
   ConstantBuffer cb   = {};
   cb.projectionMatrix = glm::perspectiveFovLH_ZO<gims::f32>(glm::radians(45.0f), (gims::f32)getWidth(),
                                                             (gims::f32)getHeight(), 1.0f / 256.0f, 256.0f);
+  cb.cameraPosition   = getCameraPosition();
+  cb.lightPosition    = gims::f32v3(2.0f,4.0f, 1.0f);
   m_constantBuffers[getFrameIndex()].upload(&cb);
+}
+
+gims::f32v3 SceneGraphViewerApp::getCameraPosition()
+{
+  gims::f32m4 invertedCameraMatrix = glm::inverse(m_examinerController.getTransformationMatrix());
+
+  return gims::f32v3(invertedCameraMatrix[3][0], invertedCameraMatrix[3][1], invertedCameraMatrix[3][2]);
 }
