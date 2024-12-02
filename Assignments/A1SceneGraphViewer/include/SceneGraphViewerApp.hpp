@@ -4,6 +4,7 @@
 
 #include "Scene.hpp"
 #include "UiDataStruct.h"
+#include "LightStruct.h"
 #include <gimslib/d3d/DX12App.hpp>
 #include <gimslib/types.hpp>
 #include <gimslib/ui/ExaminerController.hpp>
@@ -61,6 +62,8 @@ private:
   gims::ExaminerController         m_examinerController;
   Scene                            m_scene;
   UiData                           m_uiData;
+  int						       m_numOfLights = {1};
+  Light                            m_Lights[8];
 };
 
 #endif // SCENE_GRAPH_VIEWER_APP_CLASS

@@ -66,13 +66,43 @@ void SceneGraphViewerApp::onDrawUI()
 {
   const ImGuiWindowFlags_ imGuiFlags =
       m_examinerController.active() ? ImGuiWindowFlags_NoInputs : ImGuiWindowFlags_None;
+
+  // Information Window
   ImGui::Begin("Information", nullptr, imGuiFlags);
-  ImGui::Text("Frametime: %f", 1.0f / ImGui::GetIO().Framerate * 1000.0f);
+  ImGui::Text("Frametime: %f ms", 1.0f / ImGui::GetIO().Framerate * 1000.0f);
   gims::f32v3 cameraPosition = getCameraPosition();
   ImGui::Text("Camera Position: (%.2f, %.2f, %.2f)", cameraPosition.x, cameraPosition.y, cameraPosition.z);
   ImGui::End();
+
+  // Configuration Window
   ImGui::Begin("Configuration", nullptr, imGuiFlags);
+
+  // Background Color
   ImGui::ColorEdit3("Background Color", &m_uiData.m_backgroundColor[0]);
+
+  // Number of Lights
+  ImGui::SliderInt("Number of Lights", &m_numOfLights, 1, 8);
+
+  // Light Properties
+  for (int i = 0; i < m_numOfLights; ++i)
+  {
+    std::string lightLabel = "Light " + std::to_string(i + 1);
+    if (ImGui::CollapsingHeader(lightLabel.c_str()))
+    {
+      // Position
+      std::string positionLabel = "Position##" + std::to_string(i);
+      ImGui::DragFloat3(positionLabel.c_str(), &m_Lights[i].lightPosition[0], 0.1f);
+
+      // Color
+      std::string colorLabel = "Color##" + std::to_string(i);
+      ImGui::ColorEdit3(colorLabel.c_str(), &m_Lights[i].lightColor[0]);
+
+      // Intensity
+      std::string intensityLabel = "Intensity##" + std::to_string(i);
+      ImGui::SliderFloat(intensityLabel.c_str(), &m_Lights[i].lightIntensity, 0.0f, 10.0f);
+    }
+  }
+
   ImGui::End();
 }
 
@@ -195,6 +225,8 @@ void SceneGraphViewerApp::createSceneConstantBuffer()
 {
   const ConstantBuffer cb         = {};
   const gims::ui64     frameCount = getDX12AppConfig().frameCount;
+  m_Lights[0].lightPosition       = gims::f32v3(2.0f, 4.0f, 1.0f); // for Blacksmith-Scene
+  m_Lights[0].lightIntensity      = gims::f32(1.0f);
   m_constantBuffers.resize(frameCount);
   for (gims::ui32 i = 0; i < frameCount; i++)
   {
@@ -208,7 +240,11 @@ void SceneGraphViewerApp::updateSceneConstantBuffer()
   cb.projectionMatrix = glm::perspectiveFovLH_ZO<gims::f32>(glm::radians(45.0f), (gims::f32)getWidth(),
                                                             (gims::f32)getHeight(), 1.0f / 256.0f, 256.0f);
   cb.cameraPosition   = getCameraPosition();
-  cb.lightPosition    = gims::f32v3(2.0f,4.0f, 1.0f);
+  cb.numOfLights      = m_numOfLights;
+  for (gims::ui8 i = 0; i < 8; i++)
+  {
+    cb.Lights[i] = m_Lights[i];
+  }
   m_constantBuffers[getFrameIndex()].upload(&cb);
 }
 

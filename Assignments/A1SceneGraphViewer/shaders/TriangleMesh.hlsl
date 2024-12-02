@@ -15,6 +15,17 @@ struct VertexShaderOutput
     float2 texCoord : TEXCOOD;
 };
 
+struct Light
+{
+    float3 position;
+    float  pad1;
+    float3 color;
+    float  intensity;
+    float  pad2;
+    float3 pad3;
+    float4 pad4;
+};
+
 /// <summary>
 /// Constants that can change every frame.
 /// </summary>
@@ -22,9 +33,8 @@ cbuffer PerFrameConstants : register(b0)
 {
     float4x4 projectionMatrix;
     float3   cameraPosition;
-    float    padding;
-    float3   lightPosition;
-
+    int      numOfLights;
+    Light    lights[8];
 }
 
 /// <summary>
@@ -78,29 +88,35 @@ float4 PS_main(VertexShaderOutput input)
     
     float3 mixedAmbientColor  = sampledAmbientColor * ambientColor.rgb;
     float3 mixedDiffuseColor  = sampledDiffuseColor * diffuseColor.rgb;
-    float3 mixedSpecularColor = sampledSpecularColor * specularColorAndExponent.rgb;
+    float3 mixedSpecularColor = sampledSpecularColor + specularColorAndExponent.rgb;
     float3 mixedEmissiveColor = sampledEmissiveColor * emissiveColor.rgb;
     float  exponent           = specularColorAndExponent.a;
     
-    //Test will be passed later
-    float3 lightColor      = (1.0f, 1.0f, 1.0f);
-    float  lightIntensity  = 1.0f;
-    
-    //Blinn-Phong-Belechtungsmodel
-    float3 viewDirection  = normalize(cameraPosition - input.viewSpacePosition);
-    float3 lightDirection = normalize(lightPosition - input.viewSpacePosition);
-    float3 normal         = normalize(input.viewSpaceNormal);
+    float3 normal = normalize(input.viewSpaceNormal);
+    float3 viewDirection = normalize(cameraPosition - input.viewSpacePosition);
 
+    // Initialize lighting components
     float3 ambientLighting = mixedAmbientColor;
+    float3 diffuseLighting = float3(0.0f, 0.0f, 0.0f);
+    float3 specularLighting = float3(0.0f, 0.0f, 0.0f);
 
-    float  diffuseFactor   = max(dot(normal, lightDirection), 0.0f);
-    float3 diffuseLighting = mixedDiffuseColor * lightColor * diffuseFactor;
+    // Accumulate lighting from all lights
+    for (int i = 0; i < numOfLights; ++i)
+    {
+        float3 lightDirection = normalize(lights[i].position - input.viewSpacePosition);
+        float diffuseFactor = max(dot(normal, lightDirection), 0.0f);
 
-    float3 reflectionVector = reflect(-lightDirection, normal);
-    float  specularFactor   = pow(max(dot(reflectionVector, viewDirection), 0.0f), exponent);
-    float3 specularLighting = mixedSpecularColor * lightColor * specularFactor;
+        // Diffuse lighting
+        diffuseLighting += (mixedDiffuseColor * lights[i].color * diffuseFactor) * lights[i].intensity;
 
-    float3 finalColor = ambientLighting + lightIntensity * (diffuseLighting + specularLighting) + mixedEmissiveColor;
-    
+        // Specular lighting
+        float3 reflectionVector = reflect(-lightDirection, normal);
+        float specularFactor = max(pow(max(dot(reflectionVector, viewDirection), 0.0f), exponent), 0.0f);
+        specularLighting += (mixedSpecularColor * lights[i].color * specularFactor) * lights[i].intensity;
+    }
+
+    // Combine all lighting components
+    float3 finalColor = ambientLighting + diffuseLighting + specularLighting + mixedEmissiveColor;
+
     return float4(finalColor.rgb, 1.0f);
 }
