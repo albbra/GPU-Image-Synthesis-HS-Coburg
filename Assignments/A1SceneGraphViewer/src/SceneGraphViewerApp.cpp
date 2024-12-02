@@ -24,6 +24,7 @@ SceneGraphViewerApp::SceneGraphViewerApp(const DX12AppConfig config, const std::
   createRootSignature();
   createSceneConstantBuffer();
   createPipeline();
+  updateUiDataStruct();
 }
 
 void SceneGraphViewerApp::onDraw()
@@ -51,8 +52,7 @@ void SceneGraphViewerApp::onDraw()
 
   commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, &dsvHandle);
 
-  const float clearColor[] = {m_uiData.m_backgroundColor.x, m_uiData.m_backgroundColor.y, m_uiData.m_backgroundColor.z,
-                              1.0f};
+  const float clearColor[] = {m_uiData.backgroundColor.x, m_uiData.backgroundColor.y, m_uiData.backgroundColor.z, 1.0f};
   commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
   commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
@@ -72,13 +72,21 @@ void SceneGraphViewerApp::onDrawUI()
   ImGui::Text("Frametime: %f ms", 1.0f / ImGui::GetIO().Framerate * 1000.0f);
   gims::f32v3 cameraPosition = getCameraPosition();
   ImGui::Text("Camera Position: (%.2f, %.2f, %.2f)", cameraPosition.x, cameraPosition.y, cameraPosition.z);
+  ImGui::Text("Number of Nodes in Scene: %i", m_uiData.numberOfNodes);
+  ImGui::Text("Number of Meshes in Scene: %i", m_uiData.numberOfMeshes);
+  ImGui::Text("Number of Materials loaded: %i", m_uiData.numberOfMaterials);
+  ImGui::Text("Number of Textures loaded: %i", m_uiData.numberOfTextures);
+  ImGui::Text("Scene AABB Lower Left: (%.5f, %.5f, %.5f)", m_uiData.sceneLowerleftAABBPosition.x,
+              m_uiData.sceneLowerleftAABBPosition.y, m_uiData.sceneLowerleftAABBPosition.z);
+  ImGui::Text("Scene AABB Top Right: (%.5f, %.5f, %.5f)", m_uiData.sceneTopRightAABBPosition.x,
+              m_uiData.sceneTopRightAABBPosition.y, m_uiData.sceneTopRightAABBPosition.z);
   ImGui::End();
 
   // Configuration Window
   ImGui::Begin("Configuration", nullptr, imGuiFlags);
 
   // Background Color
-  ImGui::ColorEdit3("Background Color", &m_uiData.m_backgroundColor[0]);
+  ImGui::ColorEdit3("Background Color", &m_uiData.backgroundColor[0]);
 
   // Number of Lights
   ImGui::SliderInt("Number of Lights", &m_numOfLights, 1, 8);
@@ -253,4 +261,14 @@ gims::f32v3 SceneGraphViewerApp::getCameraPosition()
   gims::f32m4 invertedCameraMatrix = glm::inverse(m_examinerController.getTransformationMatrix());
 
   return gims::f32v3(invertedCameraMatrix[3][0], invertedCameraMatrix[3][1], invertedCameraMatrix[3][2]);
+}
+
+void SceneGraphViewerApp::updateUiDataStruct()
+{
+  m_uiData.numberOfNodes              = m_scene.getNumberOfNodes();
+  m_uiData.numberOfMeshes             = m_scene.getNumberOfMeshes();
+  m_uiData.numberOfMaterials          = m_scene.getNumberOfMaterials();
+  m_uiData.numberOfTextures           = m_scene.getNumberOfTextures() - 3;
+  m_uiData.sceneLowerleftAABBPosition = m_scene.getAABB().getLowerLeftBottom();
+  m_uiData.sceneTopRightAABBPosition  = m_scene.getAABB().getUpperRightTop();
 }

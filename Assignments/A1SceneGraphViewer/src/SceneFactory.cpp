@@ -320,21 +320,6 @@ void SceneGraphFactory::computeSceneAABB(Scene& scene, AABB& aabb, gims::ui32 no
   {
     computeSceneAABB(scene, aabb, childIdx, nodeTransformation);
   }
-
-  // Ausgabe am Ende
-  if (nodeIdx == 0) // Annahme: Root-Knoten hat den Index 0
-  {
-    const gims::f32v3& lowerLeft  = aabb.getLowerLeftBottom();
-    const gims::f32v3& upperRight = aabb.getUpperRightTop();
-
-    // Debug Ausgabe
-    std::cout << "AABB Lower Left Bottom: (" << lowerLeft.x << ", " << lowerLeft.y << ", " << lowerLeft.z << ")"
-              << std::endl;
-
-    std::cout << "AABB Upper Right Top: (" << upperRight.x << ", " << upperRight.y << ", " << upperRight.z << ")"
-              << std::endl;
-    std::cout << "\n";
-  }
 }
 
 void SceneGraphFactory::createTextures(

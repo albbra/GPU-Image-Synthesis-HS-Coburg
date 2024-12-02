@@ -50,7 +50,7 @@ public:
   /// Returns the lower, left, bottom corner of the bounding box.
   /// </summary>
   /// <returns></returns>
-  const gims::f32v3& getLowerLeftBottom();
+  const gims::f32v3& getLowerLeftBottom() const;
 
   /// <summary>
   /// Returns the upper, right, top corner of the bounding box.

@@ -57,6 +57,10 @@ public:
 
   const gims::ui32 getNumberOfMeshes() const;
 
+  const gims::ui32 getNumberOfMaterials() const;
+
+  const gims::ui32 getNumberOfTextures() const;
+
   /// <summary>
   /// Materials are stored in a 1D array. This function returns the Material at the respective index.
   /// </summary>

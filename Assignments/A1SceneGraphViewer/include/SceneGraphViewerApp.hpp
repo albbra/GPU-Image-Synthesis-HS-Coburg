@@ -56,6 +56,8 @@ private:
 
   gims::f32v3 getCameraPosition();
 
+  void updateUiDataStruct();
+
   ComPtr<ID3D12PipelineState>      m_pipelineState;
   ComPtr<ID3D12RootSignature>      m_rootSignature;
   std::vector<ConstantBufferD3D12> m_constantBuffers;

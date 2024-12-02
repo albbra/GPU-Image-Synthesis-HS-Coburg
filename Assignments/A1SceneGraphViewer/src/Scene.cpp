@@ -17,22 +17,24 @@ void static addToCommandListImpl(Scene& scene, gims::ui32 nodeIdx, gims::f32m4 t
     return;
   }
 
-  Node currentNode               = scene.getNode(nodeIdx);
-  gims::f32m4       accumulatedTransformation =
-      transformation * currentNode.transformation;
+  Node        currentNode               = scene.getNode(nodeIdx);
+  gims::f32m4 accumulatedTransformation = transformation * currentNode.transformation;
 
   for (gims::ui32 i = 0; i < currentNode.meshIndices.size(); i++)
   {
+    Material currMaterial = scene.getMaterial(scene.getMesh(currentNode.meshIndices[i]).getMaterialIndex());
+
+    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> materialSrvDescriptorHeap = currMaterial.srvDescriptorHeap;
+
     commandList->SetGraphicsRoot32BitConstants(modelViewRootParameterIdx, 16, &accumulatedTransformation, 0);
+
     commandList->SetGraphicsRootConstantBufferView(
-        materialConstantsRootParameterIdx,
-        scene.getMaterial(scene.getMesh(currentNode.meshIndices[i]).getMaterialIndex())
-                                 .materialConstantBuffer.getResource()
-                                 ->GetGPUVirtualAddress());
-    commandList->SetDescriptorHeaps(1, scene.getMaterial(scene.getMesh(currentNode.meshIndices[i]).getMaterialIndex()).srvDescriptorHeap.GetAddressOf());
-    commandList->SetGraphicsRootDescriptorTable(
-        srvRootParameterIdx, scene.getMaterial(scene.getMesh(currentNode.meshIndices[i]).getMaterialIndex())
-               .srvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+        materialConstantsRootParameterIdx, currMaterial.materialConstantBuffer.getResource()->GetGPUVirtualAddress());
+
+    commandList->SetDescriptorHeaps(1, materialSrvDescriptorHeap.GetAddressOf());
+
+    commandList->SetGraphicsRootDescriptorTable(srvRootParameterIdx,
+                                                materialSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
 
     scene.getMesh(currentNode.meshIndices[i]).addToCommandList(commandList);
   }
@@ -62,6 +64,16 @@ const gims::ui32 Scene::getNumberOfNodes() const
 const gims::ui32 Scene::getNumberOfMeshes() const
 {
   return static_cast<gims::ui32>(m_meshes.size());
+}
+
+const gims::ui32 Scene::getNumberOfMaterials() const
+{
+  return static_cast<gims::ui32>(m_materials.size());
+}
+
+const gims::ui32 Scene::getNumberOfTextures() const
+{
+  return static_cast<gims::ui32>(m_textures.size());
 }
 
 const TriangleMeshD3D12& Scene::getMesh(gims::ui32 meshIdx) const

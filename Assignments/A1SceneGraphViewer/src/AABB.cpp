@@ -45,7 +45,7 @@ AABB AABB::getUnion(const AABB& other) const
   return {glm::min(m_lowerLeftBottom, other.m_lowerLeftBottom), glm::max(m_upperRightTop, other.m_upperRightTop)};
 }
 
-const gims::f32v3& AABB::getLowerLeftBottom()
+const gims::f32v3& AABB::getLowerLeftBottom() const
 {
   return m_lowerLeftBottom;
 }
