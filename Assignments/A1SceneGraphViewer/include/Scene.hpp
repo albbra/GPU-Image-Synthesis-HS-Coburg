@@ -6,6 +6,7 @@
 #include "MaterialStruct.h"
 #include "NodeStruct.h"
 #include "TriangleMeshD3D12.hpp"
+#include "BoundingBox.h"
 #include <Texture2DD3D12.hpp>
 #include <d3d12.h>
 #include <gimslib/types.hpp>
@@ -55,6 +56,8 @@ public:
   /// <param name="materialIdx">Index of the mesh.</param>
   const TriangleMeshD3D12& getMesh(gims::ui32 meshIdx) const;
 
+  const BoundingBox& getMeshBB(gims::ui32 meshIdx) const;
+
   const gims::ui32 getNumberOfMeshes() const;
 
   const gims::ui32 getNumberOfMaterials() const;
@@ -81,12 +84,17 @@ public:
                         const gims::f32m4 transformation, gims::ui32 modelViewRootParameterIdx,
                         gims::ui32 materialConstantsRootParameterIdx, gims::ui32 srvRootParameterIdx);
 
+  void addToCommandListBB(const Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>& commandList,
+                          const gims::f32m4 transformation, gims::ui32 modelViewRootParameterIdx,
+                          gims::ui32 materialConstantsRootParameterIdx, gims::ui32 srvRootParameterIdx);
+
   // Allow the class SceneGraphFactor access to the privatem mebers.
   friend class SceneGraphFactory;
 
 private:
-  std::vector<Node>              m_nodes;     //! The nodes of the scene.
-  std::vector<TriangleMeshD3D12> m_meshes;    //! Array meshes of the scene.
+  std::vector<Node>              m_nodes;  //! The nodes of the scene.
+  std::vector<TriangleMeshD3D12> m_meshes; //! Array meshes of the scene. m_meshesBB
+  std::vector<BoundingBox>       m_meshesBB;
   AABB                           m_aabb;      //! The axis-aligned bounding box of the scene.
   std::vector<Material>          m_materials; //! Material information for each mesh.
   std::vector<Texture2DD3D12>    m_textures;  //! Array of textures.

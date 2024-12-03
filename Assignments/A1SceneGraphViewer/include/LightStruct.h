@@ -11,5 +11,4 @@ struct Light
 	gims::f32v3 lightColor = gims::f32v3(1.0f, 1.0f, 1.0f);
 	gims::f32   lightIntensity = gims::f32(1.0f);
 };
-
 #endif //LIGHT_STRUCT

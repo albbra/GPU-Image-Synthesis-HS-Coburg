@@ -77,5 +77,4 @@ private:
   //! Input element descriptor defining the vertex format.
   static const std::vector<D3D12_INPUT_ELEMENT_DESC> m_inputElementDescs;
 };
-
 #endif // TRIANGLE_MESH_D3D12_CLASS

@@ -44,7 +44,7 @@ TriangleMeshD3D12::TriangleMeshD3D12(gims::f32v3 const* const positions, gims::f
   }
 
   // Convert index buffer to a CPU-side array
-  std::vector<gims::ui32> indexBufferCPU(nIndices ); // Assuming triangles
+  std::vector<gims::ui32> indexBufferCPU(nIndices );
   memcpy(indexBufferCPU.data(), indexBuffer, m_indexBufferSize);
 
   // Instantiate UploadHelper

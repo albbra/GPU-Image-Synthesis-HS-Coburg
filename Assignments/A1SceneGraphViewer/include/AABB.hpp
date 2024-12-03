@@ -72,5 +72,4 @@ private:
   //! The upper right top of the AABB.
   gims::f32v3 m_upperRightTop;
 };
-
 #endif // AXIS_ALIGNED_BOUNDING_BOX_CLASS

@@ -12,5 +12,4 @@ struct ConstantBuffer
   gims::ui32  numOfLights;
   Light       Lights[8];
 };
-
 #endif // CONSTANT_BUFFER_STRUCT

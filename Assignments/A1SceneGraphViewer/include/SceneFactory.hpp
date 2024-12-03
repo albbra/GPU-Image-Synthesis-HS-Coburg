@@ -20,6 +20,9 @@ private:
   static void createMeshes(aiScene const* const inputScene, const Microsoft::WRL::ComPtr<ID3D12Device>& device,
                            const Microsoft::WRL::ComPtr<ID3D12CommandQueue>& commandQueue, Scene& outputScene);
 
+  static void createMeshesBB(const Microsoft::WRL::ComPtr<ID3D12Device>& device,
+                           const Microsoft::WRL::ComPtr<ID3D12CommandQueue>& commandQueue, Scene& outputScene);
+
   static gims::ui32 createNodes(aiScene const* const inputScene, Scene& outputScene, aiNode const* const inputNode);
 
   static void computeSceneAABB(Scene& scene, AABB& aabb, gims::ui32 nodeIdx, gims::f32m4 transformation);
@@ -32,5 +35,4 @@ private:
                               std::unordered_map<std::filesystem::path, gims::ui32> textureFileNameToTextureIndex,
                               const Microsoft::WRL::ComPtr<ID3D12Device>& device, Scene& outputScene);
 };
-
 #endif // SCENE_FACTORY_CLASS

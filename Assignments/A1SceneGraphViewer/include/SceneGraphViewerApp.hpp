@@ -2,9 +2,9 @@
 #ifndef SCENE_GRAPH_VIEWER_APP_CLASS
 #define SCENE_GRAPH_VIEWER_APP_CLASS
 
+#include "LightStruct.h"
 #include "Scene.hpp"
 #include "UiDataStruct.h"
-#include "LightStruct.h"
 #include <gimslib/d3d/DX12App.hpp>
 #include <gimslib/types.hpp>
 #include <gimslib/ui/ExaminerController.hpp>
@@ -59,13 +59,14 @@ private:
   void updateUiDataStruct();
 
   ComPtr<ID3D12PipelineState>      m_pipelineState;
+  ComPtr<ID3D12PipelineState>      m_pipelineStateBB;
   ComPtr<ID3D12RootSignature>      m_rootSignature;
   std::vector<ConstantBufferD3D12> m_constantBuffers;
   gims::ExaminerController         m_examinerController;
   Scene                            m_scene;
   UiData                           m_uiData;
-  int						       m_numOfLights = {1};
+  int                              m_numOfLights = {1};
   Light                            m_Lights[8];
+  bool                             m_displayBoundingBoxes;
 };
-
 #endif // SCENE_GRAPH_VIEWER_APP_CLASS

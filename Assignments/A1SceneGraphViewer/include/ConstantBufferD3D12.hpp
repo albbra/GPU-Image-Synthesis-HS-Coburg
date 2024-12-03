@@ -53,5 +53,4 @@ private:
   Microsoft::WRL::ComPtr<ID3D12Resource> m_constantBuffer; //! The constant buffer on the GPU.
   size_t                                 m_sizeInBytes;    //! The size of the constant buffer in bytes.
 };
-
 #endif // CONSTANT_BUFFER_D3D12_CLASS

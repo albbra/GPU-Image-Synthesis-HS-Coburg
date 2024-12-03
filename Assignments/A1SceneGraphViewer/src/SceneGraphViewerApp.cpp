@@ -19,6 +19,7 @@ SceneGraphViewerApp::SceneGraphViewerApp(const DX12AppConfig config, const std::
     : DX12App(config)
     , m_examinerController(true)
     , m_scene(SceneGraphFactory::createFromAssImpScene(pathToScene, getDevice(), getCommandQueue()))
+    , m_displayBoundingBoxes(false)
 {
   m_examinerController.setTranslationVector(gims::f32v3(0, -0.25f, 1.5));
   createRootSignature();
@@ -87,6 +88,9 @@ void SceneGraphViewerApp::onDrawUI()
 
   // Background Color
   ImGui::ColorEdit3("Background Color", &m_uiData.backgroundColor[0]);
+
+  // BoundingBoxes
+  ImGui::Checkbox("Display Bounding Boxes", &m_displayBoundingBoxes);
 
   // Number of Lights
   ImGui::SliderInt("Number of Lights", &m_numOfLights, 1, 8);
@@ -184,10 +188,16 @@ void SceneGraphViewerApp::createPipeline()
   waitForGPU();
   const std::vector<D3D12_INPUT_ELEMENT_DESC> inputElementDescs = TriangleMeshD3D12::getInputElementDescriptors();
 
+  const std::vector<D3D12_INPUT_ELEMENT_DESC> inputElementDescsBB = BoundingBox::getInputElementDescriptors();
+
   const ComPtr<IDxcBlob> vertexShader =
       compileShader(L"../../../Assignments/A1SceneGraphViewer/Shaders/TriangleMesh.hlsl", L"VS_main", L"vs_6_0");
   const ComPtr<IDxcBlob> pixelShader =
       compileShader(L"../../../Assignments/A1SceneGraphViewer/Shaders/TriangleMesh.hlsl", L"PS_main", L"ps_6_0");
+  const ComPtr<IDxcBlob> vertexShaderBB =
+      compileShader(L"../../../Assignments/A1SceneGraphViewer/Shaders/BoundingBox.hlsl", L"VS_main", L"vs_6_0");
+  const ComPtr<IDxcBlob> pixelShaderBB =
+      compileShader(L"../../../Assignments/A1SceneGraphViewer/Shaders/BoundingBox.hlsl", L"PS_main", L"ps_6_0");
 
   D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
   psoDesc.InputLayout                        = {inputElementDescs.data(), (ui32)inputElementDescs.size()};
@@ -209,6 +219,14 @@ void SceneGraphViewerApp::createPipeline()
   psoDesc.RTVFormats[0]                      = getDX12AppConfig().renderTargetFormat;
   psoDesc.SampleDesc.Count                   = 1;
   throwIfFailed(getDevice()->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineState)));
+
+  psoDesc.InputLayout                 = {inputElementDescsBB.data(), (ui32)inputElementDescsBB.size()};
+  psoDesc.VS                          = HLSLCompiler::convert(vertexShaderBB);
+  psoDesc.PS                          = HLSLCompiler::convert(pixelShaderBB);
+  psoDesc.RasterizerState.FillMode    = D3D12_FILL_MODE_WIREFRAME;
+  psoDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
+  psoDesc.PrimitiveTopologyType       = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
+  throwIfFailed(getDevice()->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pipelineStateBB)));
 }
 
 void SceneGraphViewerApp::drawScene(const ComPtr<ID3D12GraphicsCommandList>& cmdLst)
@@ -226,14 +244,24 @@ void SceneGraphViewerApp::drawScene(const ComPtr<ID3D12GraphicsCommandList>& cmd
 
   gims::f32m4 normalizedSceneTransform = m_scene.getAABB().getNormalizationTransformation();
 
-  m_scene.addToCommandList(cmdLst, cameraMatrix * normalizedSceneTransform, 1, 2, 3);
+  gims::f32m4 transform = cameraMatrix * normalizedSceneTransform;
+
+  m_scene.addToCommandList(cmdLst, transform, 1, 2, 3);
+
+  if (m_displayBoundingBoxes)
+  {
+    cmdLst->SetPipelineState(m_pipelineStateBB.Get());
+
+    // Not working correctly now
+    m_scene.addToCommandListBB(cmdLst, transform, 1, 2, 3);
+  }
 }
 
 void SceneGraphViewerApp::createSceneConstantBuffer()
 {
   const ConstantBuffer cb         = {};
   const gims::ui64     frameCount = getDX12AppConfig().frameCount;
-  m_Lights[0].lightPosition       = gims::f32v3(2.0f, 4.0f, 1.0f); // for Blacksmith-Scene
+  m_Lights[0].lightPosition       = gims::f32v3(2.0f, 4.0f, 1.0f);
   m_Lights[0].lightIntensity      = gims::f32(1.0f);
   m_constantBuffers.resize(frameCount);
   for (gims::ui32 i = 0; i < frameCount; i++)

@@ -14,5 +14,4 @@ struct Node
   std::vector<gims::ui32> meshIndices;  //! Index in the array of meshIndices, i.e., Scene::m_meshes[].
   std::vector<gims::ui32> childIndices; //! Index in the arroy of nodes, i.e.,Scene::m_nodes[].
 };
-
 #endif // NODE_STRUCT

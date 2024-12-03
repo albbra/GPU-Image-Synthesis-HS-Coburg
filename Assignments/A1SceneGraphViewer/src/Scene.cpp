@@ -3,13 +3,14 @@
 #include "Scene.hpp"
 #include "ConstantBufferD3D12.hpp"
 #include "PerMeshConstantBufferStruct.h"
+#include "BoundingBox.h"
 #include <d3dx12/d3dx12.h>
 #include <unordered_map>
 
 void static addToCommandListImpl(Scene& scene, gims::ui32 nodeIdx, gims::f32m4 transformation,
                                  const Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>& commandList,
                                  gims::ui32 modelViewRootParameterIdx, gims::ui32 materialConstantsRootParameterIdx,
-                                 gims::ui32 srvRootParameterIdx)
+                                 gims::ui32 srvRootParameterIdx, bool drawBoundingBox)
 {
 
   if (nodeIdx >= scene.getNumberOfNodes())
@@ -36,13 +37,20 @@ void static addToCommandListImpl(Scene& scene, gims::ui32 nodeIdx, gims::f32m4 t
     commandList->SetGraphicsRootDescriptorTable(srvRootParameterIdx,
                                                 materialSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
 
-    scene.getMesh(currentNode.meshIndices[i]).addToCommandList(commandList);
+    if (!drawBoundingBox)
+    {
+        scene.getMesh(currentNode.meshIndices[i]).addToCommandList(commandList);
+    }
+    else
+    {
+        scene.getMeshBB(currentNode.meshIndices[i]).addToCommandList(commandList);
+    }
   }
 
   for (const gims::ui32& nodeIndex : currentNode.childIndices)
   {
     addToCommandListImpl(scene, nodeIndex, accumulatedTransformation, commandList, modelViewRootParameterIdx,
-                         materialConstantsRootParameterIdx, srvRootParameterIdx);
+                         materialConstantsRootParameterIdx, srvRootParameterIdx, drawBoundingBox);
   }
 }
 
@@ -81,6 +89,11 @@ const TriangleMeshD3D12& Scene::getMesh(gims::ui32 meshIdx) const
   return m_meshes[meshIdx];
 }
 
+const BoundingBox& Scene::getMeshBB(gims::ui32 meshIdx) const
+{
+    return m_meshesBB[meshIdx];
+}
+
 const Material& Scene::getMaterial(gims::ui32 materialIdx) const
 {
   return m_materials[materialIdx];
@@ -96,5 +109,13 @@ void Scene::addToCommandList(const Microsoft::WRL::ComPtr<ID3D12GraphicsCommandL
                              gims::ui32 materialConstantsRootParameterIdx, gims::ui32 srvRootParameterIdx)
 {
   addToCommandListImpl(*this, 0, transformation, commandList, modelViewRootParameterIdx,
-                       materialConstantsRootParameterIdx, srvRootParameterIdx);
+                       materialConstantsRootParameterIdx, srvRootParameterIdx, false);
+}
+
+void Scene::addToCommandListBB(const Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>& commandList,
+                             const gims::f32m4 transformation, gims::ui32 modelViewRootParameterIdx,
+                             gims::ui32 materialConstantsRootParameterIdx, gims::ui32 srvRootParameterIdx)
+{
+  addToCommandListImpl(*this, 0, transformation, commandList, modelViewRootParameterIdx,
+                       materialConstantsRootParameterIdx, srvRootParameterIdx, true);
 }

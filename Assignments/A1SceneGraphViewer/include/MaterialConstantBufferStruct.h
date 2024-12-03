@@ -14,5 +14,4 @@ struct MaterialConstantBuffer
   gims::f32v4 emissionColor            = gims::f32v4(0); //! Emission Color.
   gims::f32v4 specularColorAndExponent = gims::f32v4(0); //! xyz: Specular Color, w: Specular Exponent.
 };
-
 #endif // MATERIAL_CONSTANT_BUFFER_STRUCT

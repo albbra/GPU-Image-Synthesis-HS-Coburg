@@ -7,6 +7,7 @@ set(SOURCES "./src/main.cpp"
 								"./src/TriangleMeshD3D12.cpp" 
 								"./src/Texture2DD3D12.cpp" 
 								"./src/ConstantBufferD3D12.cpp" 
+								"./src/BoundingBox.cpp"
 								"./include/AABB.hpp" 
 								"./include/Scene.hpp" 
 								"./include/SceneFactory.hpp" 
@@ -21,9 +22,10 @@ set(SOURCES "./src/main.cpp"
 								"./include/ConstantBufferStruct.h"
 								"./include/PerMeshConstantBufferStruct.h"
 								"./include/LightStruct.h"
-								"./include/UiDataStruct.h")
+								"./include/UiDataStruct.h"
+								"./include/BoundingBox.h")
 
-set(SHADERS "./shaders/TriangleMesh.hlsl")
+set(SHADERS "./shaders/TriangleMesh.hlsl" "./shaders/BoundingBox.hlsl")
 create_app(A1SceneGraphViewer "${SOURCES}" "${SHADERS}")
 find_package(assimp CONFIG REQUIRED)
 target_link_libraries(A1SceneGraphViewer PRIVATE assimp::assimp)

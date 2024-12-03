@@ -176,6 +176,7 @@ Scene SceneGraphFactory::createFromAssImpScene(const std::filesystem::path      
       textureFilenameToIndex(inputScene);
 
   createMeshes(inputScene, device, commandQueue, outputScene);
+  createMeshesBB(device, commandQueue, outputScene);
 
   createNodes(inputScene, outputScene, inputScene->mRootNode);
 
@@ -243,6 +244,23 @@ void SceneGraphFactory::createMeshes(aiScene const* const                       
     outputScene.m_meshes.emplace_back(positions.data(), normals.data(), texCoords.data(),
                                       static_cast<gims::ui32>(positions.size()), indices.data(),
                                       static_cast<gims::ui32>(indices.size() * 3), materialIndex, device, commandQueue);
+  }
+}
+
+void SceneGraphFactory::createMeshesBB(const Microsoft::WRL::ComPtr<ID3D12Device>&       device,
+                                       const Microsoft::WRL::ComPtr<ID3D12CommandQueue>& commandQueue,
+                                       Scene&                                            outputScene)
+{
+  if (!device || !commandQueue)
+  {
+    throw std::invalid_argument("Invalid arguments to createMeshesBB.");
+  }
+
+  // Iterate through the meshes already created in the scene
+  for (const TriangleMeshD3D12& mesh : outputScene.m_meshes)
+  {
+    // Create a bounding box for the current mesh
+    outputScene.m_meshesBB.emplace_back(mesh, device, commandQueue);
   }
 }
 
@@ -425,7 +443,7 @@ void SceneGraphFactory::createMaterials(
     // Create a GPU constant buffer for this material
     Material material;
     material.materialConstantBuffer = ConstantBufferD3D12(materialBuffer, device);
-    material.srvDescriptorHeap = srv;
+    material.srvDescriptorHeap      = srv;
 
     // Add the material to the scene's material list
     outputScene.m_materials.push_back(material);
