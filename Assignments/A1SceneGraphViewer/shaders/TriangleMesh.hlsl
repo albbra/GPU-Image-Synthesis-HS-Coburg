@@ -21,9 +21,6 @@ struct Light
     float  pad1;
     float3 color;
     float  intensity;
-    float  pad2;
-    float3 pad3;
-    float4 pad4;
 };
 
 /// <summary>
